@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Control Tower — Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* ── Inventory-specific accent ─────────────────────────────── */
+:root {
+  --c-inv:      #0D9488;   /* teal — inventory */
+  --c-inv-bg:   #F0FDFA;
+  --c-inv-dark: #0F766E;
+}
+
+/* ── Scoreboard tiles (reuse shared structure) ─────────────── */
+.inv-sb { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0; background: var(--ink); border-radius: 10px; overflow: hidden; margin-bottom: 28px; }
+.inv-sb .sb-tile { border-right: 1px solid rgba(255,255,255,.07); }
+.inv-sb .sb-tile:last-child { border-right: none; }
+
+/* ── Fill Rate embed ──────────────────────────────────────────── */
+.fr-embed-card {
+  background: var(--surface); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15,22,36,.08); margin-bottom: 28px;
+  border: 1px solid var(--line);
+}
+.fr-embed-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+  gap: 16px;
+}
+.fr-embed-title { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink); }
+.fr-embed-sub   { font-size: 11px; color: var(--ink-light); margin-top: 3px; }
+.fr-open-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  padding: 7px 14px; border-radius: 6px; white-space: nowrap;
+  background: var(--c-inv); color: #fff; text-decoration: none;
+  transition: background .15s; flex-shrink: 0;
+}
+.fr-open-btn:hover { background: var(--c-inv-dark); }
+.fr-iframe {
+  width: 100%; height: 820px; border: none; display: block;
+  background: #F4F6FA;
+}
+
+/* ── Summary cards ─────────────────────────────────────────── */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+.summary-card {
+  background: var(--surface); border-radius: 10px; padding: 16px 18px;
+  border-left: 3px solid var(--c-inv); box-shadow: 0 1px 4px rgba(15,22,36,.06);
+}
+.summary-card.warn  { border-left-color: var(--amber); }
+.summary-card.risk  { border-left-color: var(--red); }
+.summary-card.ok    { border-left-color: var(--green); }
+.summary-card-label { font-size: 10.5px; font-weight: 500; color: var(--ink-light); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.summary-card-val   { font-family: var(--display); font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1; }
+.summary-card-sub   { font-size: 11px; color: var(--ink-light); margin-top: 4px; }
+
+/* ── Region tab selector ───────────────────────────────────── */
+.region-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.rtab {
+  font-size: 11px; font-weight: 600; padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--line); cursor: pointer; background: var(--surface);
+  color: var(--ink-light); transition: all .15s; letter-spacing: .02em;
+}
+.rtab:hover  { border-color: var(--c-inv); color: var(--c-inv); }
+.rtab.active { background: var(--c-inv); border-color: var(--c-inv); color: #fff; }
+
+/* Region heat cells (color scale reused by the category heatmap below) */
+.heat-na   { background: #F2F3F7  ; color: var(--ink-light); }
+.heat-low  { background: #FEE2E2; color: #B91C1C; }
+.heat-warn { background: #FEF3C7; color: #92400E; }
+.heat-ok   { background: #DCFCE7; color: #15803D; }
+.heat-high { background: #D1FAE5; color: #065F46; }
+
+/* DOH cells */
+.doh-low  { color: var(--red); font-weight: 600; }
+.doh-warn { color: var(--amber); font-weight: 600; }
+.doh-ok   { color: var(--green); }
+
+/* ── Heatmap section ───────────────────────────────────────── */
+.heatmap-section { margin-bottom: 28px; }
+.heatmap-title   { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 12px; }
+.heatmap-grid {
+  background: var(--surface); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15,22,36,.06);
+}
+.hm-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.hm-table thead tr { background: var(--ink); }
+.hm-table thead th { padding: 9px 12px; color: rgba(88, 12, 12, 0.7); font-family: var(--mono); font-size: 10px; font-weight: 500; text-align: center; letter-spacing: .04em; text-transform: uppercase; }
+.hm-table thead th:first-child { text-align: left; min-width: 150px; }
+.hm-table tbody tr { border-bottom: 1px solid var(--line-soft); }
+.hm-table tbody tr:last-child { border-bottom: none; }
+.hm-table tbody td { padding: 7px 12px; text-align: center; }
+.hm-table tbody td:first-child { text-align: left; font-weight: 500; color: var(--ink); }
+.hm-cell { border-radius: 4px; padding: 3px 8px; display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600; min-width: 44px; text-align: center; }
+
+/* ── Legend ────────────────────────────────────────────────── */
+.legend-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-light); }
+.legend-dot  { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── Chart rows for region bar overview ────────────────────── */
+.region-overview {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px;
+}
+.region-card {
+  background: var(--surface); border-radius: 10px; padding: 16px;
+  box-shadow: 0 1px 4px rgba(15,22,36,.06);
+  border-top: 3px solid var(--c-inv);
+}
+.rc-name { font-family: var(--display); font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.rc-sub  { font-size: 11px; color: var(--ink-light); margin-bottom: 12px; }
+.rc-stat { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.rc-stat-label { font-size: 11px; color: var(--ink-mid); }
+.rc-stat-val   { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); }
+.rc-bar-wrap   { background: var(--line-soft); border-radius: 3px; height: 5px; overflow: hidden; margin-bottom: 10px; }
+.rc-bar        { height: 5px; border-radius: 3px; background: var(--c-inv); transition: width .4s ease; }
+.rc-bar.warn   { background: var(--amber); }
+.rc-bar.risk   { background: var(--red); }
+.rc-divider    { border: none; border-top: 1px solid var(--line-soft); margin: 10px 0; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  .region-overview { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div id="db-loading-banner" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#0F1624;color:#fff;font-family:monospace;font-size:12px;padding:6px 16px;text-align:center;display:none">⏳ Connecting to database…</div>
+<div class="page">
+
+  <!-- NAV -->
+  <div class="topnav">
+    <div class="topnav-left">
+      <span class="brand">SCM Control Tower</span>
+      <span class="crumb">/ inventory</span>
+    </div>
+    <div class="topnav-links">
+      <a href="index.html">Overview</a>
+      <a href="logistics.html">Logistics</a>
+      <a href="inventory.html" class="active">Inventory</a>
+      <a href="config.html">Config</a>
+    </div>
+  </div>
+
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="masthead-left">
+      <div class="eyebrow">Inventory Module</div>
+      <h1>Inventory — Fill Rate &amp; SKU Availability</h1>
+    </div>
+    <div class="masthead-right">
+      <div class="period" id="periodLabel">—</div>
+      <div style="margin-top:3px;font-size:11px;color:var(--ink-light)">Fill Rate · SAI · DOH · Regional Stock</div>
+    </div>
+  </div>
+
+  <!-- ══ FILL RATE EMBED ══════════════════════════════════════ -->
+  <div class="section-label">Fill Rate Control Tower</div>
+  <div class="fr-embed-card">
+    <div class="fr-embed-header">
+      <div>
+        <div class="fr-embed-title">Fill Rate Control Tower</div>
+        <div class="fr-embed-sub">Channel × Week matrix · Zone health · SKU explorer · Loss attribution · Commercial drill-down</div>
+      </div>
+      <a href="fill-rate.html" target="_blank" class="fr-open-btn">Open Full Dashboard ↗</a>
+    </div>
+    <iframe src="fill-rate.html" class="fr-iframe" title="Fill Rate Control Tower" loading="lazy"></iframe>
+  </div>
+
+  <!-- SCOREBOARD -->
+  <div class="inv-sb scoreboard" id="invScoreboard">
+    <div class="sb-tile"><div class="sb-label">Total SKUs</div><div class="sb-val" id="sb-total-skus">—</div><div class="sb-status sb-na" id="sb-ts-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">SKUs w/ Proj.</div><div class="sb-val" id="sb-with-proj">—</div><div class="sb-status sb-na" id="sb-wp-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">Avg SAI — East</div><div class="sb-val" id="sb-sai-e">—<span class="sb-unit">x</span></div><div class="sb-status sb-na" id="sb-sai-e-s">coverage</div></div>
+    <div class="sb-tile"><div class="sb-label">Avg SAI — North</div><div class="sb-val" id="sb-sai-n">—<span class="sb-unit">x</span></div><div class="sb-status sb-na" id="sb-sai-n-s">coverage</div></div>
+    <div class="sb-tile"><div class="sb-label">Avg SAI — South</div><div class="sb-val" id="sb-sai-s">—<span class="sb-unit">x</span></div><div class="sb-status sb-na" id="sb-sai-s-s">coverage</div></div>
+    <div class="sb-tile"><div class="sb-label">Avg SAI — West</div><div class="sb-val" id="sb-sai-w">—<span class="sb-unit">x</span></div><div class="sb-status sb-na" id="sb-sai-w-s">coverage</div></div>
+    <div class="sb-tile"><div class="sb-label">At-Risk SKUs (&lt;1x)</div><div class="sb-val" id="sb-atrisk">—</div><div class="sb-status sb-na" id="sb-ar-s">any region</div></div>
+    <div class="sb-tile"><div class="sb-label">SKUs in Transit</div><div class="sb-val" id="sb-transit">—</div><div class="sb-status sb-na" id="sb-tr-s">replenishment</div></div>
+  </div>
+
+  <!-- REGION OVERVIEW CARDS -->
+  <div class="section-label">Region Overview · SAI (Stock + Transit) vs Projection</div>
+  <div class="region-overview" id="regionOverview">
+    <!-- populated by JS -->
+    <div class="region-card"><div class="rc-name">East</div><div class="rc-sub">Loading…</div></div>
+    <div class="region-card"><div class="rc-name">North</div><div class="rc-sub">Loading…</div></div>
+    <div class="region-card"><div class="rc-name">South</div><div class="rc-sub">Loading…</div></div>
+    <div class="region-card"><div class="rc-name">West</div><div class="rc-sub">Loading…</div></div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="heatmap-section">
+    <div class="section-label">Category Heatmap · Avg SAI (Stock+Transit) by Category &amp; Region</div>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2"></div> &lt;1x — Out of stock risk</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FEF3C7"></div> 1–2x — Low coverage</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#DCFCE7"></div> 2–4x — Healthy</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D1FAE5"></div> &gt;4x — Overstocked</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F2F3F7"></div> No projection</div>
+    </div>
+    <div class="heatmap-grid">
+      <table class="hm-table" id="heatmapTable">
+        <thead><tr><th>Category</th><th>East</th><th>North</th><th>South</th><th>West</th><th>SKUs</th></tr></thead>
+        <tbody id="heatmapBody">
+          <tr><td colspan="6" style="padding:40px;text-align:center;color:var(--ink-light);font-size:12px">Upload data to see category heatmap</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script src="shared-data.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   INVENTORY PAGE — Fill Rate + Regional SKU Availability
+   SAI data keys (0-indexed from row 2):
+     0-2   = Category, Sub-Category, SKU
+     3-6   = Stock (E, N, S, W)
+     8-11  = Projection July (E, N, S, W)
+     13-16 = Transit Stock (E, N, S, W)
+     23-26 = SAI (Stock+Transit) cols X,Y,Z,AA
+     28-31 = DOH (SOH)
+     33-36 = DOH (Stock+Transit)
+═══════════════════════════════════════════════════════════ */
+
+const STORAGE_KEY_INV      = 'ct_inv_sai_data';
+const STORAGE_KEY_INV_FILE = 'ct_inv_sai_filename';
+const STORAGE_KEY_INV_DATE = 'ct_inv_sai_uploaded_at';
+
+// Region keys used across scoreboard, heatmap and region cards
+const REGIONS = [['E','East'],['N','North'],['S','South'],['W','West']];
+
+/* Fill Rate is now embedded as fill-rate.html iframe — no JS needed here */
+
+/* ── SAI classification ───────────────────────────────────── */
+function saiClass(v) {
+  if (v === null) return 'na';
+  if (v < 1)   return 'low';
+  if (v < 2)   return 'warn';
+  if (v < 4)   return 'ok';
+  return 'high';
+}
+function saiHeat(v) {
+  const cls = saiClass(v);
+  const labels = { na: 'heat-na', low: 'heat-low', warn: 'heat-warn', ok: 'heat-ok', high: 'heat-high' };
+  return labels[cls];
+}
+function dohClass(v) {
+  if (v === null) return '';
+  if (v < 15)  return 'doh-low';
+  if (v < 30)  return 'doh-warn';
+  return 'doh-ok';
+}
+function fmt(v, decimals=2) {
+  if (v === null || v === undefined) return '—';
+  return v.toLocaleString('en-IN', { maximumFractionDigits: decimals });
+}
+function fmtSAI(v) {
+  if (v === null) return '—';
+  return v.toFixed(2) + 'x';
+}
+
+/* ── Scoreboard ────────────────────────────────────────────── */
+function updateScoreboard(rows) {
+  const withProj = rows.filter(r => REGIONS.some(reg => r.proj[reg[0]] !== null));
+  const atRisk   = rows.filter(r => REGIONS.some(reg => { const v = r.sai_st[reg[0]]; return v !== null && v < 1; }));
+  const inTransit = rows.filter(r => REGIONS.some(reg => (r.transit[reg[0]] || 0) > 0));
+
+  const sbAvg = (region) => {
+    const vals = rows.map(r => r.sai_st[region]).filter(v => v !== null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  };
+  const avgE = sbAvg('E'), avgN = sbAvg('N'), avgS = sbAvg('S'), avgW = sbAvg('W');
+
+  const pill = (val, thr) => val !== null && val >= thr ? 'sb-ok' : (val !== null ? 'sb-warn' : 'sb-na');
+
+  document.getElementById('sb-total-skus').textContent = rows.length;
+  document.getElementById('sb-ts-s').textContent       = 'loaded SKUs';
+  document.getElementById('sb-ts-s').className         = 'sb-status sb-ok';
+
+  document.getElementById('sb-with-proj').textContent  = withProj.length;
+  document.getElementById('sb-wp-s').textContent       = `${Math.round(withProj.length/rows.length*100)}% have July projection`;
+  document.getElementById('sb-wp-s').className         = 'sb-status sb-ok';
+
+  const setSAI = (id, sid, val) => {
+    document.getElementById(id).innerHTML = val !== null ? `${val.toFixed(1)}<span class="sb-unit">x</span>` : '—';
+    document.getElementById(sid).textContent = val !== null ? (val >= 2 ? 'healthy coverage' : val >= 1 ? 'low coverage' : 'at risk') : 'no projection';
+    document.getElementById(sid).className   = `sb-status ${val === null ? 'sb-na' : val >= 2 ? 'sb-ok' : val >= 1 ? 'sb-warn' : 'sb-risk'}`;
+  };
+  setSAI('sb-sai-e','sb-sai-e-s', avgE);
+  setSAI('sb-sai-n','sb-sai-n-s', avgN);
+  setSAI('sb-sai-s','sb-sai-s-s', avgS);
+  setSAI('sb-sai-w','sb-sai-w-s', avgW);
+
+  document.getElementById('sb-atrisk').textContent  = atRisk.length;
+  document.getElementById('sb-ar-s').textContent    = 'need replenishment';
+  document.getElementById('sb-ar-s').className      = `sb-status ${atRisk.length > 0 ? 'sb-risk' : 'sb-ok'}`;
+
+  document.getElementById('sb-transit').textContent = inTransit.length;
+  document.getElementById('sb-tr-s').textContent    = 'SKUs with transit stock';
+  document.getElementById('sb-tr-s').className      = 'sb-status sb-ok';
+}
+
+/* ── Region overview cards ─────────────────────────────────── */
+function buildRegionCards(rows) {
+  const container = document.getElementById('regionOverview');
+  const regionFull = { E:'East', N:'North', S:'South', W:'West' };
+  const keys = ['E','N','S','W'];
+
+  container.innerHTML = keys.map(k => {
+    const name  = regionFull[k];
+    const valid = rows.filter(r => r.sai_st[k] !== null);
+    const proj  = rows.filter(r => r.proj[k] !== null);
+    if (!valid.length) return `<div class="region-card"><div class="rc-name">${name}</div><div class="rc-sub">No projection data</div></div>`;
+
+    const avgSAI    = valid.reduce((a,r)=>a+r.sai_st[k],0)/valid.length;
+    const atRisk    = valid.filter(r=>r.sai_st[k]<1).length;
+    const totalStk  = rows.reduce((a,r)=>(r.stock[k]||0)+(r.transit[k]||0)+a, 0);
+    const totalProj = rows.reduce((a,r)=>a+(r.proj[k]||0), 0);
+    const coverage  = totalProj > 0 ? Math.min(totalStk/totalProj*100,100) : null;
+
+    const barClass = avgSAI < 1 ? 'risk' : avgSAI < 2 ? 'warn' : '';
+    const saiColor = avgSAI < 1 ? 'var(--red)' : avgSAI < 2 ? 'var(--amber)' : 'var(--c-inv)';
+
+    return `<div class="region-card">
+      <div class="rc-name">${name}</div>
+      <div class="rc-sub">${valid.length} SKUs with projection</div>
+      <div class="rc-stat"><span class="rc-stat-label">Avg SAI (S+T)</span><span class="rc-stat-val" style="color:${saiColor}">${avgSAI.toFixed(2)}x</span></div>
+      <div class="rc-bar-wrap"><div class="rc-bar ${barClass}" style="width:${Math.min(avgSAI/5*100,100)}%"></div></div>
+      <div class="rc-stat"><span class="rc-stat-label">At-risk SKUs (&lt;1x)</span><span class="rc-stat-val" style="color:${atRisk>0?'var(--red)':'var(--green)'}">${atRisk}</span></div>
+      <div class="rc-stat"><span class="rc-stat-label">Total Stock+Transit</span><span class="rc-stat-val">${totalStk.toLocaleString('en-IN')}</span></div>
+      <div class="rc-stat"><span class="rc-stat-label">vs July Projection</span><span class="rc-stat-val">${totalProj.toLocaleString('en-IN')}</span></div>
+      ${coverage !== null ? `<hr class="rc-divider"><div class="rc-stat"><span class="rc-stat-label">Overall cover</span><span class="rc-stat-val">${coverage.toFixed(1)}%</span></div><div class="rc-bar-wrap"><div class="rc-bar ${coverage<60?'risk':coverage<100?'warn':''}" style="width:${coverage}%"></div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ── Heatmap ───────────────────────────────────────────────── */
+function buildHeatmap(rows) {
+  const cats = [...new Set(rows.map(r=>r.category))].sort();
+  const body = document.getElementById('heatmapBody');
+  if (!cats.length) { body.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--ink-light)">No data</td></tr>'; return; }
+
+  body.innerHTML = cats.map(cat => {
+    const catRows = rows.filter(r=>r.category===cat);
+    const avg = k => {
+      const vals = catRows.map(r=>r.sai_st[k]).filter(v=>v!==null);
+      return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    };
+    const cell = k => {
+      const v = avg(k);
+      const cls = saiHeat(v);
+      return `<td><span class="hm-cell ${cls}">${v===null?'—':v.toFixed(2)+'x'}</span></td>`;
+    };
+    return `<tr>
+      <td>${cat}</td>
+      ${cell('E')}${cell('N')}${cell('S')}${cell('W')}
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-light)">${catRows.length}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Full render ─────────────────────────────────────────────*/
+function renderAll(rows) {
+  updateScoreboard(rows);
+  buildRegionCards(rows);
+  buildHeatmap(rows);
+}
+
+/* ── Boot: load both Fill Rate and SAI data from Supabase ─── */
+(async () => {
+  const banner = document.getElementById('db-loading-banner');
+  banner.style.display = 'block';
+  try {
+    await dbPrefetch();
+
+    // Load SAI / DOH inventory data
+    const raw   = await dbGet(STORAGE_KEY_INV);
+    const fname = await dbGet(STORAGE_KEY_INV_FILE);
+    const fdate = await dbGet(STORAGE_KEY_INV_DATE);
+    const saved = raw ? JSON.parse(raw) : null;
+    if (saved && saved.length) {
+      const d = fdate ? new Date(fdate) : null;
+      document.getElementById('periodLabel').textContent = fname || '—';
+      renderAll(saved);
+    } else {
+      document.getElementById('heatmapBody').innerHTML = '<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--ink-light);font-size:12px">No data — upload Base_Data (SAI &amp; DOH) on the <a href="config.html" style="color:var(--c-inv)">Config page</a></td></tr>';
+    }
+  } catch(e) {
+    console.error('Boot load failed:', e);
+    document.getElementById('heatmapBody').innerHTML =
+      `<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--red);font-size:12px">Error loading data: ${e.message}</td></tr>`;
+  } finally {
+    banner.style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>

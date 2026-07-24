@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Control Tower — Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div id="db-loading-banner" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#0F1624;color:#fff;font-family:monospace;font-size:12px;padding:6px 16px;text-align:center;display:none">⏳ Connecting to database…</div>
+<div class="page">
+
+  <div class="topnav">
+    <div class="topnav-left">
+      <span class="brand">SCM Control Tower</span>
+      <span class="crumb">/ config</span>
+    </div>
+    <div class="topnav-links">
+      <a href="index.html">Overview</a>
+      <a href="logistics.html">Logistics</a>
+      <a href="inventory.html">Inventory</a>
+      <a href="config.html" class="active">Config</a>
+    </div>
+  </div>
+
+  <div class="masthead">
+    <div class="masthead-left">
+      <div class="eyebrow">Planning Module</div>
+      <h1>Data Source Config</h1>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:var(--ink-mid);line-height:1.7;margin-bottom:8px;max-width:640px">
+    This page manages where the Overview dashboard gets its data. Data saved here is stored in <b>this browser only</b> — if you open the Overview page on a different device, you'll need to set these up there too.
+  </p>
+
+  <!-- ============ FILL RATE CONFIG ============ -->
+  <div class="section-label">Fill Rate — Excel upload</div>
+  <div class="config-card">
+    <h3>Upload latest Fill Rate report</h3>
+    <div class="config-desc">Drop your <code>.xlsb</code> or <code>.xlsx</code> export here. It's parsed in your browser — nothing is sent anywhere. Re-upload whenever you have a new export; the Overview page will reflect it instantly.</div>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="uploadText">Drop Fill Rate report here</div>
+      <div class="upload-sub" id="uploadSub">or click to browse · .xlsb / .xlsx</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsb,.xlsx,.xls" style="display:none">
+
+    <div class="conn-status idle" id="frStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearFRBtn">Clear stored data</button>
+    </div>
+  </div>
+
+  <!-- ============ CN/DN CONFIG ============ -->
+  <div class="section-label">CN/DN Ageing — Google Sheet</div>
+  <div class="config-card">
+    <h3>Connect the source sheet</h3>
+    <div class="config-desc">Paste the published CSV link for your CN/DN tracker. The Overview page fetches this live every time it loads.</div>
+
+    <div class="field-group">
+      <label>Published CSV URL</label>
+      <input type="text" id="cndnUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="saveCndnBtn">Save & test connection</button>
+      <button class="btn btn-secondary" id="clearCndnBtn">Clear</button>
+    </div>
+
+    <div class="conn-status idle" id="cndnStatus">No sheet connected yet.</div>
+
+    <div class="help-note">
+      How to get this link: in Google Sheets, go to <b>File → Share → Publish to web</b>, select the correct sheet/tab, choose <b>CSV</b> as the format, then copy the link. The sheet must contain columns named exactly <code>Closure Status</code>, <code>Ageing bucket</code>, and <code>Type of Mismatch</code>.
+    </div>
+  </div>
+
+  <!-- ============ REV LOGISTICS B2B CONFIG ============ -->
+  <div class="section-label">Rev. Logistics B2B — Google Sheet (MTD)</div>
+  <div class="config-card">
+    <h3>Connect the source sheet</h3>
+    <div class="config-desc">This workbook has one tab per month. Publish the <b>entire document</b> (not a single tab) and register each month's tab ID (gid) below — the Overview page automatically reads whichever tab matches today's month, so it's always true MTD.</div>
+
+    <div class="field-group">
+      <label>Published CSV base URL (entire document)</label>
+      <input type="text" id="revlogBaseUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+    </div>
+
+    <div class="field-group" style="display:flex;gap:10px;align-items:flex-end">
+      <div style="flex:1">
+        <label>Month name</label>
+        <input type="text" id="revlogMonthInput" placeholder="e.g. June">
+      </div>
+      <div style="flex:1">
+        <label>Tab gid</label>
+        <input type="text" id="revlogGidInput" placeholder="e.g. 1346023146">
+      </div>
+      <button class="btn btn-secondary" id="addRevlogGidBtn" style="height:38px">Add</button>
+    </div>
+
+    <div id="revlogGidList" style="margin:4px 0 14px;font-size:12px;color:var(--ink-mid)"></div>
+
+    <div class="btn-row">
+      <button class="btn" id="saveRevlogBtn">Save & test current month</button>
+      <button class="btn btn-secondary" id="clearRevlogBtn">Clear all</button>
+    </div>
+
+    <div class="conn-status idle" id="revlogStatus">No sheet connected yet.</div>
+
+    <div class="help-note">
+      How to get this link: <b>File → Share → Publish to web</b>, set the dropdown to <b>Entire Document</b>, format <b>CSV</b>, copy the link. For each month's gid: open that tab and copy the number after <code>#gid=</code> in the browser URL. The sheet must contain columns named exactly <code>Invoice Qty</code> and <code>FWD AWB Status</code>.
+    </div>
+  </div>
+
+  <!-- ============ OTD B2B SECONDARY CONFIG ============ -->
+  <div class="section-label">OTD B2B Secondary — Excel upload (MTD)</div>
+  <div class="config-card">
+    <h3>Upload latest Daily Dispatch Report</h3>
+    <div class="config-desc">Drop your Secondary Control Tower export here. It's parsed in your browser and automatically filtered to the current calendar month — no need to trim the file yourself. Re-upload whenever you have a new export.</div>
+
+    <div class="upload-zone" id="otdUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="otdUploadText">Drop Daily Dispatch Report here</div>
+      <div class="upload-sub" id="otdUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="otdFileInput" accept=".xlsx,.xls,.xlsb" style="display:none">
+
+    <div class="conn-status idle" id="otdStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearOTDBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Expects a sheet named <code>Daily Dispatch Report</code> with columns <code>Month</code> and <code>TAT (Hit/Delay)</code> (values: "Within TAT" / "TAT breach"). Rows still in transit (no verdict yet) are excluded automatically.
+    </div>
+  </div>
+
+  <!-- ============ ATP CONFIG ============ -->
+  <div class="section-label">ATP — Excel upload (WTD &amp; MTD)</div>
+  <div class="config-card">
+    <h3>Upload latest ATP Planning file</h3>
+    <div class="config-desc">Drop your ATP Excel file here. The dashboard reads the <code>June</code> sheet, sums plan and dispatch per week across all SKUs, and computes WTD ATP (current week) and MTD ATP (all weeks with dispatch so far). No trimming needed — re-upload whenever you have a new version.</div>
+
+    <div class="upload-zone" id="atpUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="atpUploadText">Drop ATP Excel file here</div>
+      <div class="upload-sub" id="atpUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="atpFileInput" accept=".xlsx,.xls,.xlsb" style="display:none">
+
+    <div class="conn-status idle" id="atpStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearATPBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Expects a sheet named <code>June</code> with columns <code>WK1 Plan</code>, <code>WK1 Dispatch</code>, <code>WK2 Plan</code>, <code>WK2 Dispatch</code> etc. Header row must be row 2 (row 1 is the subtotals row). Current week is auto-detected as the last week with any dispatch.
+    </div>
+  </div>
+
+  <!-- ============ R2R CONFIG ============ -->
+  <div class="section-label">R2R (Return-to-Recover) — Excel upload</div>
+  <div class="config-card">
+    <h3>Upload latest End-to-End Tracker</h3>
+    <div class="config-desc">Drop your End-to-End tracker here. The dashboard reads each monthly sheet (April, May, June…), filters <code>FWD AWB Status = "RTO Delivered"</code> as the denominator and <code>Final Status = "Closed"</code> as the numerator. R2R % = Closed ÷ RTO Delivered, shown month-wise and YTD.</div>
+
+    <div class="upload-zone" id="r2rUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="r2rUploadText">Drop End-to-End Tracker Excel here</div>
+      <div class="upload-sub" id="r2rUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="r2rFileInput" accept=".xlsx,.xls,.xlsb" style="display:none">
+
+    <div class="conn-status idle" id="r2rStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearR2RBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Expects sheets named after calendar months (e.g. <code>April</code>, <code>May</code>, <code>June</code>). Each sheet must have columns <code>FWD AWB Status</code> (col Q) and <code>Final Status</code> (col AY/AX). Column positions are auto-detected by name so they can vary between sheets.
+    </div>
+  </div>
+
+  <!-- ============ OTD D2C + REV LOGISTICS D2C CONFIG ============ -->
+  <div class="section-label">OTD D2C &amp; Rev. Logistics D2C — Excel upload</div>
+  <div class="config-card">
+    <h3>Upload latest Dispatch Data export</h3>
+    <div class="config-desc">One file powers both metrics. Drop your Dispatch Data export here — used as-is, no date filtering (export just the period you want reflected). OTD D2C uses <code>Final = "DELIVERED"</code> rows and checks delivery TAT (0–6 days) via <code>last update − picked on</code>. Rev. Logistics D2C uses <code>Final</code> = Return / Req RTO rows against all rows.</div>
+
+    <div class="upload-zone" id="d2cUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="d2cUploadText">Drop Dispatch Data file here</div>
+      <div class="upload-sub" id="d2cUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="d2cFileInput" accept=".xlsx,.xls,.xlsb" style="display:none">
+
+    <div class="conn-status idle" id="d2cStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearD2CBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Expects columns named exactly <code>Final</code>, <code>picked on</code>, and <code>last update</code>. "DELIVERED" must match exactly (case-sensitive) — this mirrors the filter convention already used in the source sheet.
+    </div>
+  </div>
+
+  <!-- ============ OTD PRIMARY LOGISTICS CONFIG ============ -->
+  <div class="section-label">OTD Primary Logistics — Excel upload</div>
+  <div class="config-card">
+    <h3>Upload latest Primary Logistics Daily Dispatch Report</h3>
+    <div class="config-desc">Used as-is, no date filtering. OTD % = ("On time delivery" + "Before delivery") ÷ all rows excluding "In transit" and blanks, from the <code>Shipment status</code> column — matches the workbook's own "Dashboard MIS" On time % exactly.</div>
+
+    <div class="upload-zone" id="otdpUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="otdpUploadText">Drop Daily Dispatch Report here</div>
+      <div class="upload-sub" id="otdpUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="otdpFileInput" accept=".xlsx,.xls,.xlsb" style="display:none">
+
+    <div class="conn-status idle" id="otdpStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearOTDPBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Expects a sheet named <code>Daily Dispatch Report</code> with a <code>Shipment status</code> column. Blank statuses and unrecognized values (typos, new labels) are excluded from the % rather than silently miscounted — check the breakdown table on Overview if the judged total looks low.
+    </div>
+  </div>
+
+  <!-- ============ INVENTORY (SAI & DOH) CONFIG ============ -->
+  <div class="section-label">Inventory — Regional SKU Availability (Excel upload)</div>
+  <div class="config-card">
+    <h3>Upload latest Base Data (SAI &amp; DOH) file</h3>
+    <div class="config-desc">Drop your <code>Base_Data (SAI &amp; DOH).xlsx</code> file here. The dashboard reads <b>Stock</b> (cols D–G), <b>Projection July</b> (I–L), <b>Transit Stock</b> (N–Q), <b>SAI (Stock+Transit)</b> (X–AA) and <b>DOH (Stock+Transit)</b> (AG–AJ) per region East · North · South · West. Parsed entirely in-browser — nothing leaves your device. Re-upload whenever you have a new export; the Inventory page will reflect it instantly.</div>
+
+    <div class="upload-zone" id="invUploadZone">
+      <div class="upload-icon">↥</div>
+      <div class="upload-text" id="invUploadText">Drop Base_Data (SAI &amp; DOH).xlsx here</div>
+      <div class="upload-sub" id="invUploadSub">or click to browse · .xlsx / .xls</div>
+    </div>
+    <input type="file" id="invFileInput" accept=".xlsx,.xls" style="display:none">
+
+    <div class="conn-status idle" id="invStatus">No file uploaded yet on this browser.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="clearInvBtn">Clear stored data</button>
+    </div>
+
+    <div class="help-note">
+      Header rows span row 1–2 (group header + sub-header); data starts row 3. Columns are read by fixed position, not by name — if the source template changes column order, the mapping in <code>parseInventoryWorkbook</code> (shared-data.js) needs to be updated.
+    </div>
+  </div>
+
+  <footer>
+    <span>SCM Control Tower · Config</span>
+    <span><a href="index.html" style="color:var(--ink-mid);text-decoration:underline">← Back to Overview</a></span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="shared-data.js"></script>
+<script>
+(async () => {
+await dbPrefetch(); // warm cache in one bulk fetch before rendering
+const fileInput = document.getElementById('fileInput');
+const frStatus = document.getElementById('frStatus');
+
+uploadZone.addEventListener('click', async () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = 'var(--ink)'; });
+uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = 'var(--line)'; });
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseFillRateWorkbook(e.target.result);
+      await setStoredFillRate(parsed, file.name);
+      uploadZone.classList.add('has-file');
+      document.getElementById('uploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('uploadSub').textContent = 'Click to upload a different file';
+      frStatus.className = 'conn-status ok';
+      frStatus.textContent = `Loaded successfully — ${parsed.rowCount.toLocaleString()} rows, overall fill rate ${parsed.overall.toFixed(1)}%.`;
+    } catch (err) {
+      frStatus.className = 'conn-status error';
+      frStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearFRBtn').addEventListener('click', async () => {
+  await clearFillRate();
+  uploadZone.classList.remove('has-file');
+  document.getElementById('uploadText').textContent = 'Drop Fill Rate report here';
+  document.getElementById('uploadSub').textContent = 'or click to browse · .xlsb / .xlsx';
+  frStatus.className = 'conn-status idle';
+  frStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+// ---------- CN/DN ----------
+const cndnUrlInput = document.getElementById('cndnUrlInput');
+const cndnStatus = document.getElementById('cndnStatus');
+cndnUrlInput.value = await getCNDNUrl();
+
+document.getElementById('saveCndnBtn').addEventListener('click', async () => {
+  const url = cndnUrlInput.value.trim();
+  if (!url) { cndnStatus.className = 'conn-status error'; cndnStatus.textContent = 'Please paste a URL first.'; return; }
+  cndnStatus.className = 'conn-status idle';
+  cndnStatus.textContent = 'Testing connection…';
+  try {
+    const result = await fetchCNDNData(url);
+    await setCNDNUrl(url);
+    cndnStatus.className = 'conn-status ok';
+    cndnStatus.textContent = `Connected — ${result.total} rows found, closure-under-30 is ${result.pct.toFixed(1)}%.`;
+  } catch (err) {
+    cndnStatus.className = 'conn-status error';
+    cndnStatus.textContent = 'Could not connect: ' + err.message;
+  }
+});
+
+document.getElementById('clearCndnBtn').addEventListener('click', async () => {
+  await clearCNDN();
+  cndnUrlInput.value = '';
+  cndnStatus.className = 'conn-status idle';
+  cndnStatus.textContent = 'No sheet connected yet.';
+});
+
+// ---------- REV LOGISTICS B2B ----------
+const revlogBaseUrlInput = document.getElementById('revlogBaseUrlInput');
+const revlogMonthInput = document.getElementById('revlogMonthInput');
+const revlogGidInput = document.getElementById('revlogGidInput');
+const revlogStatus = document.getElementById('revlogStatus');
+
+revlogBaseUrlInput.value = await getRevLogBaseUrl();
+
+async function renderRevlogGidList() {
+  const map = await getRevLogGidMap();
+  const entries = Object.entries(map);
+  const listEl = document.getElementById('revlogGidList');
+  if (!entries.length) { listEl.textContent = 'No months registered yet.'; return; }
+  listEl.innerHTML = entries.map(([month, gid]) =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;background:#F6F5F1;border:1px solid var(--line);border-radius:12px;padding:3px 10px;margin:0 6px 6px 0;font-family:var(--mono);font-size:11px">
+      ${month}: ${gid}
+      <span style="cursor:pointer;color:var(--amber)" onclick="removeRevlogGid('${month}')">✕</span>
+    </span>`
+  ).join('');
+}
+
+async function removeRevlogGid(month) {
+  const map = await getRevLogGidMap();
+  delete map[month];
+  await setRevLogGidMap(map);
+  renderRevlogGidList();
+}
+
+document.getElementById('addRevlogGidBtn').addEventListener('click', async () => {
+  const month = revlogMonthInput.value.trim();
+  const gid = revlogGidInput.value.trim();
+  if (!month || !gid) { revlogStatus.className = 'conn-status error'; revlogStatus.textContent = 'Enter both a month name and a gid.'; return; }
+  await addRevLogGid(month, gid);
+  revlogMonthInput.value = '';
+  revlogGidInput.value = '';
+  renderRevlogGidList();
+  revlogStatus.className = 'conn-status idle';
+  revlogStatus.textContent = `Added ${month}. Click "Save & test current month" once your base URL is set.`;
+});
+
+document.getElementById('saveRevlogBtn').addEventListener('click', async () => {
+  const baseUrl = revlogBaseUrlInput.value.trim();
+  if (!baseUrl) { revlogStatus.className = 'conn-status error'; revlogStatus.textContent = 'Please paste the base CSV URL first.'; return; }
+  await setRevLogBaseUrl(baseUrl);
+  revlogStatus.className = 'conn-status idle';
+  revlogStatus.textContent = 'Testing connection for ' + getCurrentMonthName() + '…';
+  try {
+    const result = await fetchRevLogB2BData();
+    revlogStatus.className = 'conn-status ok';
+    revlogStatus.textContent = `Connected — "${result.monthName}" tab, ${result.rowCount} rows, Rev. Logistics B2B is ${result.pct.toFixed(1)}%.`;
+  } catch (err) {
+    revlogStatus.className = 'conn-status error';
+    revlogStatus.textContent = 'Could not connect: ' + err.message;
+  }
+});
+
+document.getElementById('clearRevlogBtn').addEventListener('click', async () => {
+  await clearRevLog();
+  revlogBaseUrlInput.value = '';
+  renderRevlogGidList();
+  revlogStatus.className = 'conn-status idle';
+  revlogStatus.textContent = 'No sheet connected yet.';
+});
+
+renderRevlogGidList();
+
+// ---------- OTD B2B SECONDARY ----------
+const otdUploadZone = document.getElementById('otdUploadZone');
+const otdFileInput = document.getElementById('otdFileInput');
+const otdStatus = document.getElementById('otdStatus');
+
+otdUploadZone.addEventListener('click', async () => otdFileInput.click());
+otdUploadZone.addEventListener('dragover', e => { e.preventDefault(); otdUploadZone.style.borderColor = 'var(--ink)'; });
+otdUploadZone.addEventListener('dragleave', () => { otdUploadZone.style.borderColor = 'var(--line)'; });
+otdUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  otdUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleOTDFile(e.dataTransfer.files[0]);
+});
+otdFileInput.addEventListener('change', e => { if (e.target.files.length) handleOTDFile(e.target.files[0]); });
+
+async function handleOTDFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseOTDWorkbook(e.target.result);
+      await setStoredOTD(parsed, file.name);
+      otdUploadZone.classList.add('has-file');
+      document.getElementById('otdUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('otdUploadSub').textContent = 'Click to upload a different file';
+      otdStatus.className = 'conn-status ok';
+      otdStatus.textContent = `Loaded successfully — ${parsed.judgedTotal} judged POs for ${parsed.monthName}, OTD ${parsed.pct.toFixed(1)}%.`;
+    } catch (err) {
+      otdStatus.className = 'conn-status error';
+      otdStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearOTDBtn').addEventListener('click', async () => {
+  await clearOTD();
+  otdUploadZone.classList.remove('has-file');
+  document.getElementById('otdUploadText').textContent = 'Drop Daily Dispatch Report here';
+  document.getElementById('otdUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  otdStatus.className = 'conn-status idle';
+  otdStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+// ---------- ATP ----------
+const atpUploadZone = document.getElementById('atpUploadZone');
+const atpFileInput = document.getElementById('atpFileInput');
+const atpStatus = document.getElementById('atpStatus');
+
+atpUploadZone.addEventListener('click', async () => atpFileInput.click());
+atpUploadZone.addEventListener('dragover', e => { e.preventDefault(); atpUploadZone.style.borderColor = 'var(--ink)'; });
+atpUploadZone.addEventListener('dragleave', () => { atpUploadZone.style.borderColor = 'var(--line)'; });
+atpUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  atpUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleATPFile(e.dataTransfer.files[0]);
+});
+atpFileInput.addEventListener('change', e => { if (e.target.files.length) handleATPFile(e.target.files[0]); });
+
+async function handleATPFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseATPWorkbook(e.target.result);
+      await setStoredATP(parsed, file.name);
+      atpUploadZone.classList.add('has-file');
+      document.getElementById('atpUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('atpUploadSub').textContent = 'Click to upload a different file';
+      atpStatus.className = 'conn-status ok';
+      atpStatus.textContent = `Loaded — ${parsed.currentWk} active · WTD ${parsed.wtdPct.toFixed(1)}% · MTD ${parsed.mtdPct.toFixed(1)}%`;
+    } catch (err) {
+      atpStatus.className = 'conn-status error';
+      atpStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearATPBtn').addEventListener('click', async () => {
+  await clearATP();
+  atpUploadZone.classList.remove('has-file');
+  document.getElementById('atpUploadText').textContent = 'Drop ATP Excel file here';
+  document.getElementById('atpUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  atpStatus.className = 'conn-status idle';
+  atpStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+// Restore ATP upload zone state on page load
+(async function restoreATPState() {
+  const meta = await getATPMeta();
+  const data = await getStoredATP();
+  if (data && meta.filename) {
+    atpUploadZone.classList.add('has-file');
+    document.getElementById('atpUploadText').textContent = `✓ ${meta.filename}`;
+    document.getElementById('atpUploadSub').textContent = 'Click to upload a different file';
+    atpStatus.className = 'conn-status ok';
+    atpStatus.textContent = `Loaded — ${data.currentWk} active · WTD ${data.wtdPct.toFixed(1)}% · MTD ${data.mtdPct.toFixed(1)}%`;
+  }
+})();
+
+// ---------- R2R ----------
+const r2rUploadZone = document.getElementById('r2rUploadZone');
+const r2rFileInput  = document.getElementById('r2rFileInput');
+const r2rStatus     = document.getElementById('r2rStatus');
+
+r2rUploadZone.addEventListener('click', async () => r2rFileInput.click());
+r2rUploadZone.addEventListener('dragover', e => { e.preventDefault(); r2rUploadZone.style.borderColor = 'var(--ink)'; });
+r2rUploadZone.addEventListener('dragleave', () => { r2rUploadZone.style.borderColor = 'var(--line)'; });
+r2rUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  r2rUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleR2RFile(e.dataTransfer.files[0]);
+});
+r2rFileInput.addEventListener('change', e => { if (e.target.files.length) handleR2RFile(e.target.files[0]); });
+
+async function handleR2RFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseR2RWorkbook(e.target.result);
+      await setStoredR2R(parsed, file.name);
+      r2rUploadZone.classList.add('has-file');
+      document.getElementById('r2rUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('r2rUploadSub').textContent = 'Click to upload a different file';
+      r2rStatus.className = 'conn-status ok';
+      r2rStatus.textContent = `Loaded — ${parsed.months.length} month(s) · YTD R2R ${parsed.ytdPct.toFixed(1)}% (${parsed.ytdClosed} of ${parsed.ytdRTO} RTO Delivered closed)`;
+    } catch (err) {
+      r2rStatus.className = 'conn-status error';
+      r2rStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearR2RBtn').addEventListener('click', async () => {
+  await clearR2R();
+  r2rUploadZone.classList.remove('has-file');
+  document.getElementById('r2rUploadText').textContent = 'Drop End-to-End Tracker Excel here';
+  document.getElementById('r2rUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  r2rStatus.className = 'conn-status idle';
+  r2rStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+(async function restoreR2RState() {
+  const meta = await getR2RMeta();
+  const data = await getStoredR2R();
+  if (data && meta.filename) {
+    r2rUploadZone.classList.add('has-file');
+    document.getElementById('r2rUploadText').textContent = `✓ ${meta.filename}`;
+    document.getElementById('r2rUploadSub').textContent = 'Click to upload a different file';
+    r2rStatus.className = 'conn-status ok';
+    r2rStatus.textContent = `Loaded — ${data.months.length} month(s) · YTD R2R ${data.ytdPct.toFixed(1)}% (${data.ytdClosed} of ${data.ytdRTO} RTO Delivered closed)`;
+  }
+})();
+
+// ---------- OTD D2C + REV LOGISTICS D2C ----------
+const d2cUploadZone = document.getElementById('d2cUploadZone');
+const d2cFileInput  = document.getElementById('d2cFileInput');
+const d2cStatus     = document.getElementById('d2cStatus');
+
+d2cUploadZone.addEventListener('click', async () => d2cFileInput.click());
+d2cUploadZone.addEventListener('dragover', e => { e.preventDefault(); d2cUploadZone.style.borderColor = 'var(--ink)'; });
+d2cUploadZone.addEventListener('dragleave', () => { d2cUploadZone.style.borderColor = 'var(--line)'; });
+d2cUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  d2cUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleD2CFile(e.dataTransfer.files[0]);
+});
+d2cFileInput.addEventListener('change', e => { if (e.target.files.length) handleD2CFile(e.target.files[0]); });
+
+async function handleD2CFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseD2CWorkbook(e.target.result);
+      await setStoredD2C(parsed, file.name);
+      d2cUploadZone.classList.add('has-file');
+      document.getElementById('d2cUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('d2cUploadSub').textContent = 'Click to upload a different file';
+      d2cStatus.className = 'conn-status ok';
+      d2cStatus.textContent = `Loaded — OTD D2C ${parsed.otdPct.toFixed(1)}% (${parsed.otdWithinWindow} of ${parsed.deliveredCount} delivered) · Rev. Log D2C ${parsed.revLogPct.toFixed(1)}% (${parsed.returnCount} of ${parsed.totalRows} rows)`;
+    } catch (err) {
+      d2cStatus.className = 'conn-status error';
+      d2cStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearD2CBtn').addEventListener('click', async () => {
+  await clearD2C();
+  d2cUploadZone.classList.remove('has-file');
+  document.getElementById('d2cUploadText').textContent = 'Drop Dispatch Data file here';
+  document.getElementById('d2cUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  d2cStatus.className = 'conn-status idle';
+  d2cStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+(async function restoreD2CState() {
+  const meta = await getD2CMeta();
+  const data = await getStoredD2C();
+  if (data && meta.filename) {
+    d2cUploadZone.classList.add('has-file');
+    document.getElementById('d2cUploadText').textContent = `✓ ${meta.filename}`;
+    document.getElementById('d2cUploadSub').textContent = 'Click to upload a different file';
+    d2cStatus.className = 'conn-status ok';
+    d2cStatus.textContent = `Loaded — OTD D2C ${data.otdPct.toFixed(1)}% (${data.otdWithinWindow} of ${data.deliveredCount} delivered) · Rev. Log D2C ${data.revLogPct.toFixed(1)}% (${data.returnCount} of ${data.totalRows} rows)`;
+  }
+})();
+
+// ---------- OTD PRIMARY LOGISTICS ----------
+const otdpUploadZone = document.getElementById('otdpUploadZone');
+const otdpFileInput  = document.getElementById('otdpFileInput');
+const otdpStatus     = document.getElementById('otdpStatus');
+
+otdpUploadZone.addEventListener('click', async () => otdpFileInput.click());
+otdpUploadZone.addEventListener('dragover', e => { e.preventDefault(); otdpUploadZone.style.borderColor = 'var(--ink)'; });
+otdpUploadZone.addEventListener('dragleave', () => { otdpUploadZone.style.borderColor = 'var(--line)'; });
+otdpUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  otdpUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleOTDPFile(e.dataTransfer.files[0]);
+});
+otdpFileInput.addEventListener('change', e => { if (e.target.files.length) handleOTDPFile(e.target.files[0]); });
+
+async function handleOTDPFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = parseOTDPrimaryWorkbook(e.target.result);
+      await setStoredOTDPrimary(parsed, file.name);
+      otdpUploadZone.classList.add('has-file');
+      document.getElementById('otdpUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('otdpUploadSub').textContent = 'Click to upload a different file';
+      otdpStatus.className = 'conn-status ok';
+      let msg = `Loaded — OTD Primary ${parsed.pct.toFixed(1)}% (${parsed.onTimeCount} of ${parsed.judgedTotal} judged). Excluded: ${parsed.excludedCount} in-transit, ${parsed.blankStatusCount} blank.`;
+      if (parsed.unrecognizedCount > 0) {
+        msg += ` ⚠ ${parsed.unrecognizedCount} row(s) had unrecognized status values — check the breakdown on Overview.`;
+      }
+      otdpStatus.textContent = msg;
+    } catch (err) {
+      otdpStatus.className = 'conn-status error';
+      otdpStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearOTDPBtn').addEventListener('click', async () => {
+  await clearOTDPrimary();
+  otdpUploadZone.classList.remove('has-file');
+  document.getElementById('otdpUploadText').textContent = 'Drop Daily Dispatch Report here';
+  document.getElementById('otdpUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  otdpStatus.className = 'conn-status idle';
+  otdpStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+(async function restoreOTDPState() {
+  const meta = await getOTDPrimaryMeta();
+  const data = await getStoredOTDPrimary();
+  if (data && meta.filename) {
+    otdpUploadZone.classList.add('has-file');
+    document.getElementById('otdpUploadText').textContent = `✓ ${meta.filename}`;
+    document.getElementById('otdpUploadSub').textContent = 'Click to upload a different file';
+    otdpStatus.className = 'conn-status ok';
+    otdpStatus.textContent = `Loaded — OTD Primary ${data.pct.toFixed(1)}% (${data.onTimeCount} of ${data.judgedTotal} judged).`;
+  }
+})();
+
+// ---------- INVENTORY (SAI & DOH) ----------
+const invUploadZone = document.getElementById('invUploadZone');
+const invFileInput  = document.getElementById('invFileInput');
+const invStatus     = document.getElementById('invStatus');
+
+invUploadZone.addEventListener('click', async () => invFileInput.click());
+invUploadZone.addEventListener('dragover', e => { e.preventDefault(); invUploadZone.style.borderColor = 'var(--ink)'; });
+invUploadZone.addEventListener('dragleave', () => { invUploadZone.style.borderColor = 'var(--line)'; });
+invUploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  invUploadZone.style.borderColor = 'var(--line)';
+  if (e.dataTransfer.files.length) handleInvFile(e.dataTransfer.files[0]);
+});
+invFileInput.addEventListener('change', e => { if (e.target.files.length) handleInvFile(e.target.files[0]); });
+
+async function handleInvFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const rows = parseInventoryWorkbook(e.target.result);
+      await setStoredInventory(rows, file.name);
+      invUploadZone.classList.add('has-file');
+      document.getElementById('invUploadText').textContent = `✓ ${file.name}`;
+      document.getElementById('invUploadSub').textContent = 'Click to upload a different file';
+      invStatus.className = 'conn-status ok';
+      const withProj = rows.filter(r => ['E','N','S','W'].some(k => r.proj[k] !== null)).length;
+      invStatus.textContent = `Loaded successfully — ${rows.length.toLocaleString()} SKUs, ${withProj} with July projection.`;
+    } catch (err) {
+      invStatus.className = 'conn-status error';
+      invStatus.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('clearInvBtn').addEventListener('click', async () => {
+  await clearInventory();
+  invUploadZone.classList.remove('has-file');
+  document.getElementById('invUploadText').textContent = 'Drop Base_Data (SAI & DOH).xlsx here';
+  document.getElementById('invUploadSub').textContent = 'or click to browse · .xlsx / .xls';
+  invStatus.className = 'conn-status idle';
+  invStatus.textContent = 'No file uploaded yet on this browser.';
+});
+
+(async function restoreInvState() {
+  const meta = await getInventoryMeta();
+  const data = await getStoredInventory();
+  if (data && meta.filename) {
+    invUploadZone.classList.add('has-file');
+    document.getElementById('invUploadText').textContent = `✓ ${meta.filename}`;
+    document.getElementById('invUploadSub').textContent = 'Click to upload a different file';
+    invStatus.className = 'conn-status ok';
+    const withProj = data.filter(r => ['E','N','S','W'].some(k => r.proj[k] !== null)).length;
+    invStatus.textContent = `Loaded — ${data.length.toLocaleString()} SKUs, ${withProj} with July projection.`;
+  }
+})();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Control Tower  - Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div id="db-loading-banner" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#0F1624;color:#fff;font-family:monospace;font-size:12px;padding:6px 16px;text-align:center;display:none">⏳ Connecting to database…</div>
+<div class="page">
+
+  <div class="topnav">
+    <div class="topnav-left">
+      <span class="brand">SCM Control Tower</span>
+      <span class="crumb">/ overview</span>
+    </div>
+    <div class="topnav-links">
+      <a href="index.html" class="active">Overview</a>
+      <a href="inventory.html">Inventory</a>
+      <a href="logistics.html">Logistics</a>
+      <a href="config.html">Config</a>
+    </div>
+  </div>
+
+
+  <div class="masthead">
+    <div class="masthead-left">
+      <div class="eyebrow">Planning Module</div>
+      <h1>SUPPLY CHAIN - CONTROL TOWER</h1>
+    </div>
+    <div class="masthead-right">
+      <div class="period" id="periodLabel">June 2026</div>
+      <div style="margin-top:3px">Visibility build · v2</div>
+    </div>
+  </div>
+
+  <!-- ============ HERO METRICS ============ -->
+  <!-- ============ SCOREBOARD STRIP ============ -->
+  <div class="scoreboard" id="scoreboard">
+    <div class="sb-tile"><div class="sb-label">Fill Rate</div><div class="sb-val" id="sb-fr"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-fr-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">CN/DN &lt;30d</div><div class="sb-val" id="sb-cndn"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-cndn-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">Rev Log B2B</div><div class="sb-val" id="sb-rev"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-rev-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">OTD B2B Sec</div><div class="sb-val" id="sb-otd"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-otd-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">ATP WTD</div><div class="sb-val" id="sb-atp"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-atp-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">R2R YTD</div><div class="sb-val" id="sb-r2r"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-r2r-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">OTD D2C</div><div class="sb-val" id="sb-otdd2c"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-otdd2c-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">Rev Log D2C</div><div class="sb-val" id="sb-revd2c"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-revd2c-s">No data</div></div>
+    <div class="sb-tile"><div class="sb-label">OTD Primary</div><div class="sb-val" id="sb-otdp"> -<span class="sb-unit">%</span></div><div class="sb-status sb-na" id="sb-otdp-s">No data</div></div>
+  </div>
+
+  <!-- ============ ROW 1: Fill Rate + CN/DN ============ -->
+  <div class="slide" id="slide-1">
+  <div class="section-label">Fill Rate &amp; CN/DN Closure</div>
+  <div class="chart-row two-col">
+
+    <!-- FILL RATE  - horizontal bar chart per zone -->
+    <div class="chart-card card-fr">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Fill Rate %</div>
+          <div class="chart-sub" id="frSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="frHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="frStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body bar-chart" id="frChart">
+        <div class="chart-empty">Upload Fill Rate file on the Config page</div>
+      </div>
+      <div class="chart-footer">
+        <div class="section-label" style="margin:16px 0 8px">By channel (top 8)</div>
+        <table class="mini-table"><thead><tr><th>Channel</th><th class="num">PO</th><th class="num">Dispatched</th><th class="num">FR%</th></tr></thead>
+        <tbody id="channelTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- CN/DN  - age-bucket distribution bars -->
+    <div class="chart-card card-cndn">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">CN/DN Closure &lt;30 days</div>
+          <div class="chart-sub" id="cndnSub">No data  - connect sheet on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="cndnHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="cndnStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body bar-chart" id="cndnChart">
+        <div class="chart-empty">Connect CN/DN Google Sheet on the Config page</div>
+      </div>
+      <div class="chart-footer">
+        <div class="section-label" style="margin:16px 0 8px">By mismatch type</div>
+        <table class="mini-table"><thead><tr><th>Type</th><th class="num">Total</th><th class="num">&lt;30d</th><th class="num">%</th></tr></thead>
+        <tbody id="mismatchTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /slide-1 -->
+
+  <!-- ============ ROW 2: Rev Log donut + OTD gauge ============ -->
+  <div class="slide" id="slide-2">
+  <div class="section-label">Rev. Logistics B2B &amp; OTD</div>
+  <div class="chart-row two-col">
+
+    <!-- REV LOGISTICS  - donut chart -->
+    <div class="chart-card card-rev">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Rev. Logistics B2B <span class="period-tag">MTD</span></div>
+          <div class="chart-sub" id="revlogSub">No data  - connect sheet on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="revlogHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="revlogStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body donut-layout">
+        <svg id="revlogDonut" width="160" height="160" viewBox="0 0 160 160"></svg>
+        <div id="revlogLegend" class="donut-legend"></div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Month</th><th class="num">Total Qty</th><th class="num">RTO Qty</th><th class="num">RTO %</th></tr></thead>
+        <tbody id="revlogStatusTableBody"><tr><td colspan="3" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- OTD  - gauge + transporter bars -->
+    <div class="chart-card card-otd">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">OTD B2B Secondary <span class="period-tag">MTD</span></div>
+          <div class="chart-sub" id="otdSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="otdHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="otdStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body gauge-layout">
+        <svg id="otdGauge" width="200" height="120" viewBox="0 0 200 120"></svg>
+        <div id="otdTransporterBreakdown" class="gauge-bars"></div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Transporter</th><th class="num">Within TAT</th><th class="num">Breach</th><th class="num">OTD%</th></tr></thead>
+        <tbody id="otdTransporterTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /slide-2 -->
+
+  <!-- ============ ROW 3: ATP grouped bars + R2R column chart ============ -->
+  <div class="slide" id="slide-3">
+  <div class="section-label">ATP &amp; R2R Recovery</div>
+  <div class="chart-row two-col">
+
+    <!-- ATP  - grouped bar chart plan vs dispatch per week -->
+    <div class="chart-card card-atp">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">ATP  - Plan vs Dispatch <span class="period-tag" id="atpWkLabel">WTD</span></div>
+          <div class="chart-sub" id="atpSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="atpWtdHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="status-pill" id="atpStatusPill"> -</span>
+            <span style="font-size:10px;color:var(--ink-light)">WTD · MTD <b id="atpMtdNumber"> -</b>%</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-body bar-chart" id="atpChart">
+        <div class="chart-empty">Upload ATP Planning file on the Config page</div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Week</th><th class="num">Plan</th><th class="num">Dispatch</th><th class="num">ATP%</th></tr></thead>
+        <tbody id="atpWeekTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- R2R  - column chart month over month -->
+    <div class="chart-card card-r2r">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">R2R Recovery Rate <span class="period-tag">YTD</span></div>
+          <div class="chart-sub" id="r2rSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="r2rYtdNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="r2rStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body bar-chart" id="r2rChart">
+        <div class="chart-empty">Upload End-to-End Tracker on the Config page</div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Month</th><th class="num">RTO Del.</th><th class="num">Closed</th><th class="num">R2R%</th></tr></thead>
+        <tbody id="r2rMonthTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /slide-3 -->
+
+  <!-- ============ ROW 4: OTD D2C gauge + Rev Logistics D2C donut ============ -->
+  <div class="slide" id="slide-4">
+  <div class="section-label">OTD D2C &amp; Rev. Logistics D2C</div>
+  <div class="chart-row two-col">
+
+    <!-- OTD D2C  - gauge -->
+    <div class="chart-card card-otd">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">OTD D2C</div>
+          <div class="chart-sub" id="otdD2CSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="otdD2CHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="otdD2CStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body gauge-layout">
+        <svg id="otdD2CGauge" width="200" height="120" viewBox="0 0 200 120"></svg>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Final status</th><th class="num">Count</th><th class="num">%</th></tr></thead>
+        <tbody id="otdD2CBreakdownTableBody"><tr><td colspan="3" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- REV LOGISTICS D2C  - donut -->
+    <div class="chart-card card-rev">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Rev. Logistics D2C</div>
+          <div class="chart-sub" id="revlogD2CSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="revlogD2CHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="revlogD2CStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body donut-layout">
+        <svg id="revlogD2CDonut" width="160" height="160" viewBox="0 0 160 160"></svg>
+        <div id="revlogD2CLegend" class="donut-legend"></div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Final status</th><th class="num">Count</th><th class="num">%</th></tr></thead>
+        <tbody id="revlogD2CTableBody"><tr><td colspan="3" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /slide-4 -->
+
+  <!-- ============ ROW 5: OTD PRIMARY LOGISTICS gauge ============ -->
+  <div class="slide" id="slide-5">
+  <div class="section-label">OTD Primary Logistics</div>
+  <div class="chart-row two-col">
+
+    <!-- OTD PRIMARY  - gauge -->
+    <div class="chart-card card-otd">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">OTD Primary Logistics</div>
+          <div class="chart-sub" id="otdpSub">No data  - upload on Config page</div>
+        </div>
+        <div class="chart-kpi">
+          <span id="otdpHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <span class="status-pill" id="otdpStatusPill"> -</span>
+        </div>
+      </div>
+      <div class="chart-body gauge-layout">
+        <svg id="otdpGauge" width="200" height="120" viewBox="0 0 200 120"></svg>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Status</th><th class="num">Count</th><th class="num">%</th></tr></thead>
+        <tbody id="otdpStatusTableBody"><tr><td colspan="3" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- OTD PRIMARY  - by transporter -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">By transporter</div>
+          <div class="chart-sub" id="otdpTransporterSub">Top transporters by judged volume</div>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="breakdown" id="otdpTransporterBreakdown"></div>
+      </div>
+      <div class="chart-footer">
+        <table class="mini-table"><thead><tr><th>Transporter</th><th class="num">On time</th><th class="num">Late</th><th class="num">OTD %</th></tr></thead>
+        <tbody id="otdpTransporterTableBody"><tr><td colspan="4" class="empty-row"> -</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /slide-5 -->
+
+  <!-- ============ COMING NEXT ============ -->
+  <div class="slide" id="slide-6">
+  <div class="section-label">Coming next</div>
+  <div class="placeholder-grid">
+    <div class="ph-card"><div class="ph-name">Regional SKU availability</div><div class="ph-status">Awaiting data</div></div>
+    <div class="ph-card"><div class="ph-name">Cost of poor planning</div><div class="ph-status">Awaiting data</div></div>
+    <div class="ph-card"><div class="ph-name">Audit closure · CX %</div><div class="ph-status">Awaiting data</div></div>
+  </div>
+  </div><!-- /slide-6 -->
+
+  <!-- ============ SLIDESHOW CONTROLS ============ -->
+  <div class="slide-controls">
+    <button class="slide-arrow" id="slidePrev" aria-label="Previous slide">&#8592;</button>
+    <div class="slide-dots" id="slideDots"></div>
+    <button class="slide-arrow" id="slideNext" aria-label="Next slide">&#8594;</button>
+    <div class="slide-timer-wrap">
+      <div class="slide-timer-bar" id="slideTimerBar"></div>
+    </div>
+    <span class="slide-counter" id="slideCounter">1 / 6</span>
+    <button class="slide-pause-btn" id="slidePauseBtn" title="Pause / Resume">&#9646;&#9646;</button>
+  </div>
+
+  <footer>
+    <span>SCM Control Tower · Planning Module</span>
+    <span id="footerSync"></span>
+  </footer>
+</div>
+
+<script src="shared-data.js"></script>
+<script>
+(async () => {
+await dbPrefetch(); // warm cache in one bulk fetch before rendering
+// All charts drawn as inline SVG  - no external library needed.
+
+function sbSet(id, valStr, pct, threshHigh, threshMid) {
+  const el = document.getElementById('sb-' + id);
+  const sel = document.getElementById('sb-' + id + '-s');
+  if (el) el.innerHTML = valStr + '<span class="sb-unit">%</span>';
+  if (sel) {
+    if (pct === null) { sel.textContent = 'No data'; sel.className = 'sb-status sb-na'; }
+    else if (pct >= threshHigh) { sel.textContent = 'On Track'; sel.className = 'sb-status sb-on'; }
+    else if (pct >= threshMid)  { sel.textContent = 'Watch';    sel.className = 'sb-status sb-watch'; }
+    else                        { sel.textContent = 'At Risk';  sel.className = 'sb-status sb-risk'; }
+  }
+}
+
+// Horizontal bar chart  - returns SVG string
+// data = [{label, value, max, color}]
+function hbarSVG(data, targetLine) {
+  const W = 340, BAR_H = 22, GAP = 10, LABEL_W = 58, VAL_W = 38, PADDING = 8;
+  const TOP_PAD = targetLine != null ? 16 : 0; // reserve space above bars so the target label never sits on top of a bar's value text
+  const chartW = W - LABEL_W - VAL_W - PADDING;
+  const H = data.length * (BAR_H + GAP) - GAP + TOP_PAD;
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">`;
+
+  data.forEach((d, i) => {
+    const y = TOP_PAD + i * (BAR_H + GAP);
+    const barW = Math.max(0, Math.min(d.value / (d.max || 100) * chartW, chartW));
+    // background track
+    svg += `<rect x="${LABEL_W}" y="${y}" width="${chartW}" height="${BAR_H}" rx="3" fill="#ECEEF5"/>`;
+    // filled bar
+    svg += `<rect x="${LABEL_W}" y="${y}" width="${barW}" height="${BAR_H}" rx="3" fill="${d.color}"/>`;
+    // label
+    svg += `<text x="${LABEL_W - 6}" y="${y + BAR_H/2 + 4}" text-anchor="end" font-size="11" font-family="Inter,sans-serif" fill="#7880A0">${d.label}</text>`;
+    // value
+    svg += `<text x="${LABEL_W + chartW + VAL_W - 2}" y="${y + BAR_H/2 + 4}" text-anchor="end" font-size="11" font-family="JetBrains Mono,monospace" font-weight="500" fill="#0F1624">${d.value.toFixed(1)}%</text>`;
+  });
+
+  // target line  - drawn in the reserved top strip, never overlapping a bar's own text
+  if (targetLine != null) {
+    const tx = LABEL_W + targetLine / 100 * chartW;
+    svg += `<line x1="${tx}" y1="${TOP_PAD - 2}" x2="${tx}" y2="${H}" stroke="#0F1624" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    svg += `<text x="${tx + 3}" y="${TOP_PAD - 6}" font-size="9" font-family="JetBrains Mono,monospace" fill="#7880A0">Target ${targetLine}%</text>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// Donut chart  - returns SVG string
+// segments = [{label, value, color}]
+function donutSVG(segments, cx=80, cy=80, r=58, ir=36) {
+  const total = segments.reduce((s, d) => s + d.value, 0);
+  if (!total) return '';
+  let svg = `<g>`;
+  let angle = -Math.PI / 2;
+  segments.forEach(d => {
+    const slice = (d.value / total) * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+    const x2 = cx + r * Math.cos(angle + slice), y2 = cy + r * Math.sin(angle + slice);
+    const xi1 = cx + ir * Math.cos(angle), yi1 = cy + ir * Math.sin(angle);
+    const xi2 = cx + ir * Math.cos(angle + slice), yi2 = cy + ir * Math.sin(angle + slice);
+    const large = slice > Math.PI ? 1 : 0;
+    svg += `<path d="M ${xi1} ${yi1} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${ir} ${ir} 0 ${large} 0 ${xi1} ${yi1} Z" fill="${d.color}" stroke="#fff" stroke-width="1.5"/>`;
+    angle += slice;
+  });
+  svg += `</g>`;
+  return svg;
+}
+
+// SVG gauge (semicircle)
+function gaugeSVG(pct, color) {
+  const W = 220, H = 140, cx = 110, cy = 118, r = 88, sw = 14;
+  const clamped = Math.max(0, Math.min(100, pct));
+  // The background and the colored fill are drawn along the EXACT SAME path
+  // (left point, over the top, to the right point). Instead of calculating a
+  // second arc endpoint + flags (which is what caused the double-band bug  -
+  // easy to get the sweep direction backwards), we draw the full path once
+  // and reveal only `pct%` of its length using stroke-dasharray. This can't
+  // wrap the wrong way because it's the same line, just truncated  - there is
+  // no direction ambiguity left to get wrong.
+  const arcLength = Math.PI * r;
+  const fillLength = arcLength * (clamped / 100);
+  const fullPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+  return `<svg width="220" height="140" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;max-width:100%">
+    <path d="${fullPath}" fill="none" stroke="#ECEEF5" stroke-width="${sw}" stroke-linecap="round"/>
+    <path d="${fullPath}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
+          stroke-dasharray="${fillLength.toFixed(2)} ${arcLength.toFixed(2)}"/>
+    <text x="${cx}" y="${cy - 34}" text-anchor="middle" font-size="26" font-weight="700" font-family="Space Grotesk,sans-serif" fill="${color}">${pct.toFixed(1)}%</text>
+    <text x="${cx-r}" y="${cy + 24}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#A0A8C0">0%</text>
+    <text x="${cx+r}" y="${cy + 24}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#A0A8C0">100%</text>
+  </svg>`;
+}
+
+// Grouped bar chart  - plan vs actual per week
+function groupedBarSVG(weeks) {
+  const W = 340, H = 160, PAD_L = 40, PAD_B = 28, PAD_T = 10;
+  const chartW = W - PAD_L - 10, chartH = H - PAD_B - PAD_T;
+  const n = weeks.length;
+  const groupW = chartW / n;
+  const bW = Math.min(groupW * 0.35, 28);
+  const maxVal = Math.max(...weeks.flatMap(w => [w.plan, w.disp]));
+  if (!maxVal) return '<div class="chart-empty">No data</div>';
+  
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  
+  // Y gridlines
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = PAD_T + chartH - (pct / 100) * chartH;
+    svg += `<line x1="${PAD_L}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#ECEEF5" stroke-width="1"/>`;
+    svg += `<text x="${PAD_L - 4}" y="${y + 4}" text-anchor="end" font-size="8" font-family="JetBrains Mono,monospace" fill="#A0A8C0">${pct}%</text>`;
+  });
+
+  weeks.forEach((w, i) => {
+    const cx = PAD_L + i * groupW + groupW / 2;
+    const planH = (w.plan / maxVal) * chartH;
+    const dispH = (w.disp / maxVal) * chartH;
+    const planColor = '#BFDBFE';
+    const dispColor = w.isCurrent ? '#D97706' : w.pct >= 90 ? '#16A34A' : w.pct >= 75 ? '#D97706' : '#DC2626';
+    
+    // Plan bar (left of pair)
+    svg += `<rect x="${cx - bW - 2}" y="${PAD_T + chartH - planH}" width="${bW}" height="${planH}" rx="2" fill="${planColor}"/>`;
+    // Dispatch bar (right of pair)
+    svg += `<rect x="${cx + 2}" y="${PAD_T + chartH - dispH}" width="${bW}" height="${dispH}" rx="2" fill="${dispColor}"/>`;
+    
+    // Week label
+    svg += `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="${w.isCurrent ? '#0F1624' : '#7880A0'}" font-weight="${w.isCurrent ? '600' : '400'}">${w.label}${w.isCurrent ? '●' : ''}</text>`;
+    
+    // ATP% above dispatch bar
+    if (w.disp > 0) {
+      svg += `<text x="${cx + 2 + bW/2}" y="${PAD_T + chartH - dispH - 4}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="${dispColor}" font-weight="600">${w.pct.toFixed(0)}%</text>`;
+    }
+  });
+
+  // Legend
+  svg += `<rect x="${PAD_L}" y="${H - 10}" width="8" height="8" rx="1" fill="#BFDBFE"/>`;
+  svg += `<text x="${PAD_L + 10}" y="${H - 3}" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">Plan</text>`;
+  svg += `<rect x="${PAD_L + 50}" y="${H - 10}" width="8" height="8" rx="1" fill="#D97706"/>`;
+  svg += `<text x="${PAD_L + 62}" y="${H - 3}" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">Dispatch</text>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// Column chart for R2R month-over-month with target line
+function columnChartSVG(months, targetPct) {
+  const W = 340, H = 160, PAD_L = 40, PAD_B = 28, PAD_T = 10;
+  const chartW = W - PAD_L - 10, chartH = H - PAD_B - PAD_T;
+  const n = months.length;
+  if (!n) return '';
+  const colW = Math.min(chartW / n * 0.55, 44);
+  const gap = chartW / n;
+
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = PAD_T + chartH - (pct / 100) * chartH;
+    svg += `<line x1="${PAD_L}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#ECEEF5" stroke-width="1"/>`;
+    svg += `<text x="${PAD_L - 4}" y="${y + 4}" text-anchor="end" font-size="8" font-family="JetBrains Mono,monospace" fill="#A0A8C0">${pct}%</text>`;
+  });
+
+  // Target line
+  if (targetPct) {
+    const ty = PAD_T + chartH - (targetPct / 100) * chartH;
+    svg += `<line x1="${PAD_L}" y1="${ty}" x2="${W-10}" y2="${ty}" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="5,3" opacity=".6"/>`;
+    svg += `<text x="${W - 12}" y="${ty - 3}" text-anchor="end" font-size="8" font-family="JetBrains Mono,monospace" fill="#DC2626">Target</text>`;
+  }
+
+  // Trend line points
+  const points = [];
+
+  months.forEach((m, i) => {
+    const cx = PAD_L + i * gap + gap / 2;
+    const bH = (m.pct / 100) * chartH;
+    const color = m.pct >= 85 ? '#16A34A' : m.pct >= 70 ? '#D97706' : '#DC2626';
+    svg += `<rect x="${cx - colW/2}" y="${PAD_T + chartH - bH}" width="${colW}" height="${bH}" rx="3" fill="${color}" opacity=".85"/>`;
+    svg += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#7880A0">${m.month.slice(0,3)}</text>`;
+    if (m.pct > 0) {
+      svg += `<text x="${cx}" y="${PAD_T + chartH - bH - 4}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="${color}" font-weight="600">${m.pct.toFixed(0)}%</text>`;
+      points.push([cx, PAD_T + chartH - bH]);
+    }
+  });
+
+  // Trend line
+  if (points.length > 1) {
+    const pStr = points.map(p => p.join(',')).join(' ');
+    svg += `<polyline points="${pStr}" fill="none" stroke="#6B7FD4" stroke-width="2" stroke-dasharray="4,2" opacity=".7"/>`;
+    points.forEach(p => { svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#6B7FD4"/>`; });
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// ── RENDER FUNCTIONS ────────────────────────────────────────────────────
+
+async function renderFillRateFromStored() {
+  const data = await getStoredFillRate();
+  const meta = await getFillRateMeta();
+  if (!data) return;
+
+  document.getElementById('frHeroNumber').innerHTML = data.overall.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('fr', data.overall.toFixed(1), data.overall, 95, 90);
+  const pill = document.getElementById('frStatusPill');
+  if (data.overall >= 95) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+  else if (data.overall >= 90) { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
+  else { pill.textContent = 'AT RISK'; pill.className = 'status-pill status-risk'; }
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+  document.getElementById('frSub').innerHTML = `<b>${data.overall.toFixed(1)}%</b> overall · ${meta.filename || ''} (${uploadedDate})`;
+
+  const zoneOrder = ['North','West','East','South'];
+  const zoneData = zoneOrder.filter(z => data.zoneAgg[z]).map(z => {
+    const pct = data.zoneAgg[z].disp / data.zoneAgg[z].po * 100;
+    return { label: z, value: pct, max: 100, color: pct >= 95 ? '#16A34A' : pct >= 90 ? '#D97706' : '#DC2626' };
+  });
+  document.getElementById('frChart').innerHTML = hbarSVG(zoneData, 95);
+
+  const tbody = document.getElementById('channelTableBody');
+  const sorted = Object.entries(data.channelAgg).sort((a,b) => b[1].po - a[1].po).slice(0, 8);
+  tbody.innerHTML = sorted.map(([name, v]) => {
+    const pct = v.disp / v.po * 100;
+    const tagColor = pct >= 95 ? 'var(--green-bg);color:var(--green)' : 'var(--amber-bg);color:var(--amber)';
+    return `<tr><td>${name}</td><td class="num">${v.po.toLocaleString()}</td><td class="num">${v.disp.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${pct.toFixed(1)}%</span></td></tr>`;
+  }).join('');
+}
+
+async function renderCNDNFromSheet() {
+  const url = await getCNDNUrl();
+  if (!url) return;
+  try {
+    const result = await fetchCNDNData(url);
+    document.getElementById('cndnHeroNumber').innerHTML = result.pct.toFixed(1) + '<span class="kpi-unit">%</span>';
+    sbSet('cndn', result.pct.toFixed(1), result.pct, 80, 60);
+    const pill = document.getElementById('cndnStatusPill');
+    if (result.pct >= 70) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+    else { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
+    document.getElementById('cndnSub').innerHTML = `<b>${result.closedUnder30}</b> of <b>${result.total}</b> mismatches closed within 30 days`;
+
+    // Ageing distribution  - all 4 buckets as horizontal bars
+    const buckets = [
+      { label: '0–15d',  key: '0 to 15',  color: '#16A34A' },
+      { label: '16–30d', key: '16 to 30', color: '#4ADE80' },
+      { label: '31–45d', key: '31 to 45', color: '#D97706' },
+      { label: '46–60d', key: '46 to 60', color: '#DC2626' },
+    ];
+    const maxCount = Math.max(...buckets.map(b => result.buckets[b.key] || 0), 1);
+    const bData = buckets.map(b => ({
+      label: b.label,
+      value: result.total ? ((result.buckets[b.key] || 0) / result.total * 100) : 0,
+      max: 100,
+      color: b.color,
+    }));
+    document.getElementById('cndnChart').innerHTML = hbarSVG(bData, null);
+
+    const tbody = document.getElementById('mismatchTableBody');
+    const sorted = Object.entries(result.types).sort((a,b) => b[1].total - a[1].total);
+    tbody.innerHTML = sorted.map(([name, v]) => {
+      const p = v.total ? v.closedUnder30 / v.total * 100 : 0;
+      const tagColor = p >= 70 ? 'var(--green-bg);color:var(--green)' : 'var(--amber-bg);color:var(--amber)';
+      return `<tr><td>${name}</td><td class="num">${v.total}</td><td class="num">${v.closedUnder30}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${p.toFixed(1)}%</span></td></tr>`;
+    }).join('');
+
+    document.getElementById('footerSync').textContent = 'CN/DN synced ' + new Date().toLocaleTimeString();
+  } catch(err) {
+    document.getElementById('cndnSub').innerHTML = `<span style="color:var(--amber)">Could not load sheet  - check Config page.</span>`;
+  }
+}
+
+async function renderRevLogFromSheet() {
+  const baseUrl = await getRevLogBaseUrl();
+  if (!baseUrl) return;
+  try {
+    const result = await fetchRevLogB2BData();
+
+    // YTD hero number
+    document.getElementById('revlogHeroNumber').innerHTML = result.pct.toFixed(1) + '<span class="kpi-unit">%</span>';
+    sbSet('rev', result.pct.toFixed(1), result.pct, 5, 10);
+    const pill = document.getElementById('revlogStatusPill');
+    if (result.pct <= 5) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+    else { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
+
+    // Sub-label: YTD total + current month call-out
+    const cm = result.currentMonth;
+    document.getElementById('revlogSub').innerHTML =
+      `YTD: <b>${result.rtoQty.toLocaleString()}</b> of <b>${result.totalQty.toLocaleString()}</b> units RTO (${result.pct.toFixed(1)}%)` +
+      (cm && cm.totalQty ? ` · ${cm.monthName}: ${cm.pct.toFixed(1)}%` : '');
+
+    // Donut uses YTD combined byStatus
+    const COLORS = {
+      'Delivered': '#16A34A', 'GRN Done': '#4ADE80',
+      'RTO Delivered': '#DC2626', 'RTO Initiated Done': '#F87171',
+      'RTO Initiated Pending': '#FCA5A5', 'Dispatched': '#93C5FD',
+      'Pending': '#E2E8F0',
+    };
+    const byStatus = Object.entries(result.byStatus).sort((a,b) => b[1]-a[1]);
+    const topN = byStatus.slice(0, 6);
+    const otherVal = byStatus.slice(6).reduce((s,[,v]) => s+v, 0);
+    if (otherVal > 0) topN.push(['Other', otherVal]);
+    const segments = topN.map(([s, v]) => ({ label: s, value: v, color: COLORS[s] || '#CBD5E1' }));
+
+    const svgEl = document.getElementById('revlogDonut');
+    svgEl.innerHTML = donutSVG(segments) +
+      `<text x="80" y="76" text-anchor="middle" font-size="11" font-weight="700" font-family="Space Grotesk,sans-serif" fill="#0F1624">${result.pct.toFixed(1)}%</text>` +
+      `<text x="80" y="90" text-anchor="middle" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">YTD RTO</text>`;
+
+    const legendEl = document.getElementById('revlogLegend');
+    legendEl.innerHTML = segments.slice(0, 5).map(s => {
+      const pct = result.totalQty ? (s.value/result.totalQty*100) : 0;
+      return `<div class="legend-row"><span class="legend-dot" style="background:${s.color}"></span><span class="legend-label">${s.label}</span><span class="legend-val">${pct.toFixed(1)}%</span></div>`;
+    }).join('');
+
+    // Table: month-by-month breakdown instead of just status breakdown
+    const tbody = document.getElementById('revlogStatusTableBody');
+    const monthRows = result.byMonth.map(m => {
+      const tagColor = m.pct <= 5 ? 'var(--green-bg);color:var(--green)' : m.pct <= 10 ? 'var(--amber-bg);color:var(--amber)' : 'background:#fde8ec;color:#c0143c';
+      const errNote = m.error ? `<span style="color:var(--amber);font-size:10px"> (${m.error})</span>` : '';
+      return `<tr><td>${m.monthName}${errNote}</td><td class="num">${m.totalQty.toLocaleString()}</td><td class="num">${m.rtoQty.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${m.pct.toFixed(1)}%</span></td></tr>`;
+    }).join('');
+    const ytdRow = `<tr style="font-weight:700;border-top:2px solid var(--line)"><td>YTD Total</td><td class="num">${result.totalQty.toLocaleString()}</td><td class="num">${result.rtoQty.toLocaleString()}</td><td class="num">${result.pct.toFixed(1)}%</td></tr>`;
+    tbody.innerHTML = monthRows + ytdRow;
+  } catch(err) {
+    document.getElementById('revlogSub').innerHTML = `<span style="color:var(--amber)">${err.message}</span>`;
+  }
+}
+
+async function renderOTDFromStored() {
+  const data = await getStoredOTD();
+  const meta = await getOTDMeta();
+  if (!data) return;
+
+  document.getElementById('otdHeroNumber').innerHTML = data.pct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('otd', data.pct.toFixed(1), data.pct, 95, 85);
+  const pill = document.getElementById('otdStatusPill');
+  if (data.pct >= 95) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+  else if (data.pct >= 85) { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
+  else { pill.textContent = 'AT RISK'; pill.className = 'status-pill status-risk'; }
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+  document.getElementById('otdSub').innerHTML = `<b>${data.withinTAT}</b> of <b>${data.judgedTotal}</b> POs within TAT · ${data.monthName} MTD`;
+
+  const gaugeColor = data.pct >= 95 ? '#16A34A' : data.pct >= 85 ? '#D97706' : '#DC2626';
+  document.getElementById('otdGauge').outerHTML = gaugeSVG(data.pct, gaugeColor).replace('<svg', '<svg id="otdGauge"');
+
+  const breakdownEl = document.getElementById('otdTransporterBreakdown');
+  const transporterEntries = Object.entries(data.byTransporter)
+    .map(([name, v]) => [name, v, v.within+v.breach])
+    .sort((a,b) => b[2]-a[2]).slice(0,5);
+  breakdownEl.innerHTML = '';
+  transporterEntries.forEach(([name, v, judged]) => {
+    const pct = judged ? v.within/judged*100 : 0;
+    const color = pct >= 95 ? 'var(--green)' : pct >= 85 ? 'var(--amber)' : 'var(--red)';
+    const short = name.length > 16 ? name.slice(0,15)+'…' : name;
+    breakdownEl.innerHTML += `<div class="brow"><div class="bname" title="${name}">${short}</div><div class="btrack"><div class="bfill" style="width:${pct}%;background:${color}"></div></div><div class="bval">${pct.toFixed(0)}%</div></div>`;
+  });
+
+  const tbody = document.getElementById('otdTransporterTableBody');
+  tbody.innerHTML = Object.entries(data.byTransporter)
+    .map(([name, v]) => { const judged=v.within+v.breach; const pct=judged?v.within/judged*100:0; const tagColor=pct>=95?'var(--green-bg);color:var(--green)':'var(--amber-bg);color:var(--amber)'; return `<tr><td>${name}</td><td class="num">${v.within}</td><td class="num">${v.breach}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${pct.toFixed(1)}%</span></td></tr>`; })
+    .sort().join('');
+}
+
+renderFillRateFromStored();
+renderCNDNFromSheet();
+renderRevLogFromSheet();
+renderOTDFromStored();
+
+async function renderATPFromStored() {
+  const data = await getStoredATP();
+  const meta = await getATPMeta();
+  if (!data) return;
+
+  document.getElementById('atpWkLabel').textContent = data.currentWk + ' WTD';
+  document.getElementById('atpWtdHeroNumber').innerHTML = data.wtdPct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  document.getElementById('atpMtdNumber').textContent = data.mtdPct.toFixed(1);
+  sbSet('atp', data.wtdPct.toFixed(1), data.wtdPct, 90, 75);
+
+  const pill = document.getElementById('atpStatusPill');
+  if (data.wtdPct >= 90) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+  else if (data.wtdPct >= 75) { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
+  else { pill.textContent = 'AT RISK'; pill.className = 'status-pill status-risk'; }
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+  document.getElementById('atpSub').innerHTML = `WTD <b>${data.wtdPct.toFixed(1)}%</b> · MTD <b>${data.mtdPct.toFixed(1)}%</b> · ${meta.filename||''} (${uploadedDate})`;
+
+  document.getElementById('atpChart').innerHTML = groupedBarSVG(data.weeks.filter(w => w.hasData));
+
+  const tbody = document.getElementById('atpWeekTableBody');
+  tbody.innerHTML = data.weeks.filter(w => w.hasData).map(w => {
+    const tagColor = w.pct>=90 ? 'var(--green-bg);color:var(--green)' : w.pct>=75 ? 'var(--amber-bg);color:var(--amber)' : 'background:#fde8ec;color:#c0143c';
+    return `<tr style="${w.isCurrent?'font-weight:700':''}"><td>${w.label}${w.isCurrent?' ●':''}</td><td class="num">${w.plan.toLocaleString()}</td><td class="num">${w.disp.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${w.pct.toFixed(1)}%</span></td></tr>`;
+  }).join('');
+}
+
+async function renderR2RFromStored() {
+  const data = await getStoredR2R();
+  const meta = await getR2RMeta();
+  if (!data) return;
+
+  document.getElementById('r2rYtdNumber').innerHTML = data.ytdPct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('r2r', data.ytdPct.toFixed(1), data.ytdPct, 85, 70);
+  const pill = document.getElementById('r2rStatusPill');
+  if (data.ytdPct >= 85)      { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+  else if (data.ytdPct >= 70) { pill.textContent = 'WATCH';    pill.className = 'status-pill status-attn'; }
+  else                        { pill.textContent = 'AT RISK';  pill.className = 'status-pill status-risk'; }
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+  document.getElementById('r2rSub').innerHTML = `YTD: <b>${data.ytdClosed}</b> of <b>${data.ytdRTO}</b> RTO Delivered closed · ${meta.filename||''} (${uploadedDate})`;
+
+  const activeMonths = data.months.filter(m => m.rtoDelivered > 0);
+  document.getElementById('r2rChart').innerHTML = columnChartSVG(activeMonths, 85);
+
+  const tbody = document.getElementById('r2rMonthTableBody');
+  tbody.innerHTML = data.months.map(m => {
+    if (!m.rtoDelivered) return `<tr><td>${m.month}</td><td colspan="3" class="num" style="color:var(--ink-light)">No RTO rows</td></tr>`;
+    const tagColor = m.pct>=85 ? 'var(--green-bg);color:var(--green)' : m.pct>=70 ? 'var(--amber-bg);color:var(--amber)' : 'background:#fde8ec;color:#c0143c';
+    return `<tr><td>${m.month}</td><td class="num">${m.rtoDelivered}</td><td class="num">${m.rtoClosed}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${m.pct.toFixed(1)}%</span></td></tr>`;
+  }).join('') + `<tr style="font-weight:700;border-top:2px solid var(--line)"><td>YTD</td><td class="num">${data.ytdRTO}</td><td class="num">${data.ytdClosed}</td><td class="num">${data.ytdPct.toFixed(1)}%</td></tr>`;
+}
+
+renderATPFromStored();
+renderR2RFromStored();
+
+async function renderD2CFromStored() {
+  const data = await getStoredD2C();
+  const meta = await getD2CMeta();
+  if (!data) return;
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+
+  // ---- OTD D2C (gauge) ----
+  document.getElementById('otdD2CHeroNumber').innerHTML = data.otdPct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('otdd2c', data.otdPct.toFixed(1), data.otdPct, 95, 85);
+  const otdPill = document.getElementById('otdD2CStatusPill');
+  if (data.otdPct >= 95)      { otdPill.textContent = 'ON TRACK'; otdPill.className = 'status-pill status-good'; }
+  else if (data.otdPct >= 85) { otdPill.textContent = 'WATCH';    otdPill.className = 'status-pill status-attn'; }
+  else                        { otdPill.textContent = 'AT RISK';  otdPill.className = 'status-pill status-risk'; }
+
+  document.getElementById('otdD2CSub').innerHTML = `<b>${data.otdWithinWindow.toLocaleString()}</b> of <b>${data.deliveredCount.toLocaleString()}</b> delivered orders within 0–6 days · ${meta.filename||''} (${uploadedDate})`;
+
+  const gaugeColor = data.otdPct >= 95 ? '#16A34A' : data.otdPct >= 85 ? '#D97706' : '#DC2626';
+  document.getElementById('otdD2CGauge').outerHTML = gaugeSVG(data.otdPct, gaugeColor).replace('<svg', '<svg id="otdD2CGauge"');
+
+  const otdBreakdownSorted = Object.entries(data.finalBreakdown).sort((a,b) => b[1]-a[1]);
+  document.getElementById('otdD2CBreakdownTableBody').innerHTML = otdBreakdownSorted.map(([status, count]) => {
+    const p = data.totalRows ? (count/data.totalRows*100) : 0;
+    return `<tr><td>${status}</td><td class="num">${count.toLocaleString()}</td><td class="num">${p.toFixed(1)}%</td></tr>`;
+  }).join('');
+
+  // ---- Rev. Logistics D2C (donut) ----
+  document.getElementById('revlogD2CHeroNumber').innerHTML = data.revLogPct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('revd2c', data.revLogPct.toFixed(1), data.revLogPct, 5, 10); // lower is better, same convention as Rev Log B2B
+  const revPill = document.getElementById('revlogD2CStatusPill');
+  if (data.revLogPct <= 5)      { revPill.textContent = 'ON TRACK'; revPill.className = 'status-pill status-good'; }
+  else if (data.revLogPct <= 10){ revPill.textContent = 'WATCH';    revPill.className = 'status-pill status-attn'; }
+  else                          { revPill.textContent = 'AT RISK';  revPill.className = 'status-pill status-risk'; }
+
+  document.getElementById('revlogD2CSub').innerHTML = `<b>${data.returnCount.toLocaleString()}</b> of <b>${data.totalRows.toLocaleString()}</b> order lines returned / req. RTO · ${meta.filename||''} (${uploadedDate})`;
+
+  const COLORS_D2C = {
+    'DELIVERED': '#16A34A', 'RETURN': '#DC2626', 'Return': '#DC2626', 'REQ RTO': '#F87171',
+    'INTRANSIT': '#93C5FD', 'Intransit': '#93C5FD', 'MANIFESTED': '#BFDBFE', 'Manifested': '#BFDBFE',
+    'Unfulfilled': '#E2E8F0', 'Order Cancelled': '#CBD5E1',
+  };
+  const allStatuses = Object.entries(data.finalBreakdown).sort((a,b) => b[1]-a[1]);
+  const topN = allStatuses.slice(0, 6);
+  const otherVal = allStatuses.slice(6).reduce((s,[,v]) => s+v, 0);
+  if (otherVal > 0) topN.push(['Other', otherVal]);
+  const segments = topN.map(([s, v]) => ({ label: s, value: v, color: COLORS_D2C[s] || '#CBD5E1' }));
+
+  document.getElementById('revlogD2CDonut').innerHTML = donutSVG(segments) +
+    `<text x="80" y="76" text-anchor="middle" font-size="11" font-weight="700" font-family="Space Grotesk,sans-serif" fill="#0F1624">${data.revLogPct.toFixed(1)}%</text>` +
+    `<text x="80" y="90" text-anchor="middle" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">return rate</text>`;
+
+  document.getElementById('revlogD2CLegend').innerHTML = segments.slice(0,5).map(s => {
+    const p = data.totalRows ? (s.value/data.totalRows*100) : 0;
+    return `<div class="legend-row"><span class="legend-dot" style="background:${s.color}"></span><span class="legend-label">${s.label}</span><span class="legend-val">${p.toFixed(1)}%</span></div>`;
+  }).join('');
+
+  document.getElementById('revlogD2CTableBody').innerHTML = allStatuses.map(([status, count]) => {
+    const p = data.totalRows ? (count/data.totalRows*100) : 0;
+    const isReturn = D2C_RETURN_STATUSES.includes(status);
+    const tagColor = isReturn ? 'var(--red-bg);color:var(--red)' : 'var(--green-bg);color:var(--green)';
+    return `<tr><td>${status}</td><td class="num">${count.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${p.toFixed(1)}%</span></td></tr>`;
+  }).join('');
+}
+
+renderD2CFromStored();
+
+async function renderOTDPrimaryFromStored() {
+  const data = await getStoredOTDPrimary();
+  const meta = await getOTDPrimaryMeta();
+  if (!data) return;
+
+  document.getElementById('otdpHeroNumber').innerHTML = data.pct.toFixed(1) + '<span class="kpi-unit">%</span>';
+  sbSet('otdp', data.pct.toFixed(1), data.pct, 95, 85);
+  const pill = document.getElementById('otdpStatusPill');
+  if (data.pct >= 95)      { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
+  else if (data.pct >= 85) { pill.textContent = 'WATCH';    pill.className = 'status-pill status-attn'; }
+  else                     { pill.textContent = 'AT RISK';  pill.className = 'status-pill status-risk'; }
+
+  const uploadedDate = meta.uploadedAt ? new Date(meta.uploadedAt).toLocaleDateString() : '';
+  let subText = `<b>${data.onTimeCount.toLocaleString()}</b> of <b>${data.judgedTotal.toLocaleString()}</b> judged shipments on time · ${meta.filename||''} (${uploadedDate})`;
+  if (data.blankStatusCount > 0 || data.excludedCount > 0) {
+    subText += ` · excluded ${data.excludedCount} in-transit, ${data.blankStatusCount} blank`;
+  }
+  if (data.unrecognizedCount > 0) {
+    subText += ` · <span style="color:var(--amber)">⚠ ${data.unrecognizedCount} unrecognized status value(s)</span>`;
+  }
+  document.getElementById('otdpSub').innerHTML = subText;
+
+  const gaugeColor = data.pct >= 95 ? '#16A34A' : data.pct >= 85 ? '#D97706' : '#DC2626';
+  document.getElementById('otdpGauge').outerHTML = gaugeSVG(data.pct, gaugeColor).replace('<svg', '<svg id="otdpGauge"');
+
+  // Status breakdown table (on-time / late / unrecognized / excluded / blank)
+  const statusRows = [
+    ['On time (delivery + before)', data.onTimeCount],
+    ['Delay', data.lateCount],
+  ];
+  Object.entries(data.unrecognizedValues).forEach(([val, count]) => statusRows.push([`Unrecognized: "${val}"`, count]));
+  statusRows.push(['Excluded  - In transit', data.excludedCount]);
+  statusRows.push(['Excluded  - Blank status', data.blankStatusCount]);
+  const statusDenom = data.totalRowsSeen || 1;
+  document.getElementById('otdpStatusTableBody').innerHTML = statusRows.filter(([,c]) => c > 0).map(([label, count]) => {
+    const p = (count/statusDenom*100);
+    return `<tr><td>${label}</td><td class="num">${count.toLocaleString()}</td><td class="num">${p.toFixed(1)}%</td></tr>`;
+  }).join('');
+
+  // Transporter breakdown bars (top 5 by judged volume)
+  const breakdownEl = document.getElementById('otdpTransporterBreakdown');
+  breakdownEl.innerHTML = '';
+  const transporterEntries = Object.entries(data.byTransporter)
+    .map(([name, v]) => [name, v, v.onTime + v.late])
+    .sort((a, b) => b[2] - a[2])
+    .slice(0, 5);
+  transporterEntries.forEach(([name, v, judged]) => {
+    const pct = judged ? (v.onTime / judged * 100) : 0;
+    const color = pct >= 95 ? 'var(--green)' : 'var(--amber)';
+    const shortLabel = name.length > 16 ? name.slice(0, 15) + '…' : name;
+    breakdownEl.innerHTML += `<div class="brow"><div class="bname" title="${name}">${shortLabel}</div><div class="btrack"><div class="bfill" style="width:${pct}%;background:${color}"></div></div><div class="bval">${pct.toFixed(1)}%</div></div>`;
+  });
+
+  // Full transporter table
+  const tbody = document.getElementById('otdpTransporterTableBody');
+  const allSorted = Object.entries(data.byTransporter)
+    .map(([name, v]) => [name, v, v.onTime + v.late])
+    .sort((a, b) => b[2] - a[2]);
+  tbody.innerHTML = allSorted.map(([name, v, judged]) => {
+    const pct = judged ? (v.onTime / judged * 100) : 0;
+    const tagColor = pct >= 95 ? 'var(--green-bg);color:var(--green)' : 'var(--amber-bg);color:var(--amber)';
+    return `<tr><td>${name}</td><td class="num">${v.onTime}</td><td class="num">${v.late}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${pct.toFixed(1)}%</span></td></tr>`;
+  }).join('');
+}
+
+renderOTDPrimaryFromStored();
+
+/* ── SLIDESHOW ENGINE ──────────────────────────────────────────────────
+ * Cycles through slides automatically. Scoreboard stays pinned (always
+ * visible)  - only the content rows rotate. Pauses on hover or manual
+ * click. Auto-advances via a progress-bar timer so the GM can see
+ * exactly when the next slide is coming. Page also auto-reloads itself
+ * every 30 minutes so Google-Sheets-based metrics stay current without
+ * anyone touching the TV's keyboard.
+ * ─────────────────────────────────────────────────────────────────────*/
+(async function initSlideshow() {
+  const SLIDE_DURATION = 20000; // ms per slide  - 20 seconds
+  const AUTO_RELOAD_INTERVAL = 30 * 60 * 1000; // reload page every 30 min
+
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dotsContainer = document.getElementById('slideDots');
+  const timerBar = document.getElementById('slideTimerBar');
+  const counter = document.getElementById('slideCounter');
+  const pauseBtn = document.getElementById('slidePauseBtn');
+  const prevBtn = document.getElementById('slidePrev');
+  const nextBtn = document.getElementById('slideNext');
+
+  let current = 0;
+  let paused = false;
+  let timerStart = null;
+  let timerElapsed = 0;
+  let rafId = null;
+  let advanceTimeout = null;
+
+  // Build dot indicators
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  });
+
+  function goTo(idx, resetTimer = true) {
+    slides[current].classList.remove('active');
+    dotsContainer.children[current].classList.remove('active');
+    current = (idx + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dotsContainer.children[current].classList.add('active');
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (resetTimer) startTimer();
+  }
+
+  function startTimer() {
+    cancelAnimationFrame(rafId);
+    clearTimeout(advanceTimeout);
+    timerElapsed = 0;
+    timerStart = performance.now();
+    if (!paused) tick();
+  }
+
+  function tick() {
+    const elapsed = timerElapsed + (performance.now() - timerStart);
+    const pct = Math.min(elapsed / SLIDE_DURATION * 100, 100);
+    timerBar.style.width = pct + '%';
+
+    if (elapsed >= SLIDE_DURATION) {
+      timerBar.style.width = '0%';
+      goTo(current + 1);
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pause() {
+    if (paused) return;
+    paused = true;
+    timerElapsed += performance.now() - timerStart;
+    cancelAnimationFrame(rafId);
+    clearTimeout(advanceTimeout);
+    pauseBtn.innerHTML = '&#9654;';
+    pauseBtn.classList.add('paused');
+    pauseBtn.title = 'Resume';
+  }
+
+  function resume() {
+    if (!paused) return;
+    paused = false;
+    timerStart = performance.now();
+    tick();
+    pauseBtn.innerHTML = '&#9646;&#9646;';
+    pauseBtn.classList.remove('paused');
+    pauseBtn.title = 'Pause';
+  }
+
+  pauseBtn.addEventListener('click', () => paused ? resume() : pause());
+  prevBtn.addEventListener('click', () => { goTo(current - 1); if (paused) resume(); });
+  nextBtn.addEventListener('click', () => { goTo(current + 1); if (paused) resume(); });
+
+  // Pause on hover over any slide content
+  document.querySelectorAll('.slide').forEach(s => {
+    s.addEventListener('mouseenter', pause);
+    s.addEventListener('mouseleave', resume);
+  });
+
+  // Keyboard support  - left/right arrows
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft')  { goTo(current - 1); }
+    if (e.key === 'ArrowRight') { goTo(current + 1); }
+    if (e.key === ' ')          { paused ? resume() : pause(); e.preventDefault(); }
+  });
+
+  // Auto-reload every 30 min to keep Google-Sheets-sourced metrics fresh
+  // (localStorage-based metrics will also reload from storage automatically)
+  setTimeout(() => location.reload(), AUTO_RELOAD_INTERVAL);
+
+  // Start
+  goTo(0, false);
+  timerStart = performance.now();
+  tick();
+})();
+
+})();
+</script>
+</body>
+</html>
