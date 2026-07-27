@@ -495,6 +495,8 @@ function processRevLogRows(rows, monthName) {
     // legacy fields (donut + scoreboard still use these)
     totalQty, rtoQty: rtoTotalQty, pct, byStatus,
     rowCount: rows.length,
+    // canonical aliases (used by fetchRevLogB2BAllMonths' byMonth summary)
+    rtoRate: pct, flaggedUnits: rtoTotalQty, totalUnits: totalQty,
     // PO-level summary
     po: {
       total: totalPO, rtoTotal: rtoTotalPO, rtoDelivered: rtoDeliveredPO,
@@ -556,6 +558,21 @@ async function fetchRevLogB2BAllMonths() {
       return { monthName, skipped: true, error: e.message };
     }
   }));
+
+  // ── Month-wise summary + YTD aggregate ────────────────────────────────
+  // Attached as extra properties on the array (not a wrapper object) so
+  // existing callers that treat the return value as a plain array of
+  // per-month objects (e.g. `months.filter(m => !m.skipped)`, `months.map(...)`)
+  // keep working unchanged.
+  const loadedForYtd = results.filter(m => !m.skipped);
+  const ytdFlagged = loadedForYtd.reduce((s, m) => s + m.flaggedUnits, 0);
+  const ytdUnits   = loadedForYtd.reduce((s, m) => s + m.totalUnits, 0);
+
+  results.byMonth = results.map(m => m.skipped
+    ? { month: m.monthName, rtoRate: null, flaggedUnits: null, totalUnits: null, skipped: true, error: m.error }
+    : { month: m.monthName, rtoRate: m.rtoRate, flaggedUnits: m.flaggedUnits, totalUnits: m.totalUnits }
+  );
+  results.ytdTotal = ytdUnits ? (ytdFlagged / ytdUnits * 100) : 0;
 
   return results;
 }
