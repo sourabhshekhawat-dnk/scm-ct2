@@ -119,7 +119,10 @@
         </div>
         <div class="chart-kpi">
           <span id="revlogHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
-          <span class="status-pill" id="revlogStatusPill"> -</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="status-pill" id="revlogStatusPill"> -</span>
+            <span style="font-size:10px;color:var(--ink-light)">MTD · YTD <b id="revlogYtdNumber"> -</b>%</span>
+          </div>
         </div>
       </div>
       <div class="chart-body donut-layout">
@@ -612,20 +615,18 @@ async function renderRevLogFromSheet() {
   try {
     const result = await fetchRevLogB2BData();
 
-    // YTD hero number
+    // MTD hero number (unchanged)
     document.getElementById('revlogHeroNumber').innerHTML = result.pct.toFixed(1) + '<span class="kpi-unit">%</span>';
     sbSet('rev', result.pct.toFixed(1), result.pct, 5, 10);
     const pill = document.getElementById('revlogStatusPill');
     if (result.pct <= 5) { pill.textContent = 'ON TRACK'; pill.className = 'status-pill status-good'; }
     else { pill.textContent = 'WATCH'; pill.className = 'status-pill status-attn'; }
 
-    // Sub-label: YTD total + current month call-out
-    const cm = result.currentMonth;
+    // Sub-label: current month call-out (result IS the current month's data)
     document.getElementById('revlogSub').innerHTML =
-      `YTD: <b>${result.rtoQty.toLocaleString()}</b> of <b>${result.totalQty.toLocaleString()}</b> units RTO (${result.pct.toFixed(1)}%)` +
-      (cm && cm.totalQty ? ` · ${cm.monthName}: ${cm.pct.toFixed(1)}%` : '');
+      `<b>${result.rtoQty.toLocaleString()}</b> of <b>${result.totalQty.toLocaleString()}</b> units RTO (${result.pct.toFixed(1)}%) · ${result.monthName} MTD`;
 
-    // Donut uses YTD combined byStatus
+    // Donut uses MTD byStatus
     const COLORS = {
       'Delivered': '#16A34A', 'GRN Done': '#4ADE80',
       'RTO Delivered': '#DC2626', 'RTO Initiated Done': '#F87171',
@@ -641,7 +642,7 @@ async function renderRevLogFromSheet() {
     const svgEl = document.getElementById('revlogDonut');
     svgEl.innerHTML = donutSVG(segments) +
       `<text x="80" y="76" text-anchor="middle" font-size="11" font-weight="700" font-family="Space Grotesk,sans-serif" fill="#0F1624">${result.pct.toFixed(1)}%</text>` +
-      `<text x="80" y="90" text-anchor="middle" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">YTD RTO</text>`;
+      `<text x="80" y="90" text-anchor="middle" font-size="8" font-family="Inter,sans-serif" fill="#7880A0">MTD RTO</text>`;
 
     const legendEl = document.getElementById('revlogLegend');
     legendEl.innerHTML = segments.slice(0, 5).map(s => {
@@ -649,15 +650,25 @@ async function renderRevLogFromSheet() {
       return `<div class="legend-row"><span class="legend-dot" style="background:${s.color}"></span><span class="legend-label">${s.label}</span><span class="legend-val">${pct.toFixed(1)}%</span></div>`;
     }).join('');
 
-    // Table: month-by-month breakdown instead of just status breakdown
-    const tbody = document.getElementById('revlogStatusTableBody');
-    const monthRows = result.byMonth.map(m => {
-      const tagColor = m.pct <= 5 ? 'var(--green-bg);color:var(--green)' : m.pct <= 10 ? 'var(--amber-bg);color:var(--amber)' : 'background:#fde8ec;color:#c0143c';
-      const errNote = m.error ? `<span style="color:var(--amber);font-size:10px"> (${m.error})</span>` : '';
-      return `<tr><td>${m.monthName}${errNote}</td><td class="num">${m.totalQty.toLocaleString()}</td><td class="num">${m.rtoQty.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${m.pct.toFixed(1)}%</span></td></tr>`;
-    }).join('');
-    const ytdRow = `<tr style="font-weight:700;border-top:2px solid var(--line)"><td>YTD Total</td><td class="num">${result.totalQty.toLocaleString()}</td><td class="num">${result.rtoQty.toLocaleString()}</td><td class="num">${result.pct.toFixed(1)}%</td></tr>`;
-    tbody.innerHTML = monthRows + ytdRow;
+    // Secondary YTD number + month-wise table (needs the all-months aggregate)
+    try {
+      const allMonths = await fetchRevLogB2BAllMonths();
+      document.getElementById('revlogYtdNumber').textContent = allMonths.ytdTotal.toFixed(1);
+
+      const tbody = document.getElementById('revlogStatusTableBody');
+      const monthRows = allMonths.byMonth.map(m => {
+        if (m.skipped) {
+          return `<tr style="opacity:.5"><td>${m.month}</td><td colspan="2" class="num" style="color:var(--amber)">Could not load</td><td class="num">—</td></tr>`;
+        }
+        const tagColor = m.rtoRate <= 5 ? 'var(--green-bg);color:var(--green)' : m.rtoRate <= 10 ? 'var(--amber-bg);color:var(--amber)' : 'background:#fde8ec;color:#c0143c';
+        return `<tr><td>${m.month}</td><td class="num">${m.totalUnits.toLocaleString()}</td><td class="num">${m.flaggedUnits.toLocaleString()}</td><td class="num"><span class="fr-tag" style="background:${tagColor}">${m.rtoRate.toFixed(1)}%</span></td></tr>`;
+      }).join('');
+      const ytdRow = `<tr style="font-weight:700;border-top:2px solid var(--line)"><td>YTD Total</td><td class="num">—</td><td class="num">—</td><td class="num">${allMonths.ytdTotal.toFixed(1)}%</td></tr>`;
+      tbody.innerHTML = monthRows + ytdRow;
+    } catch (e) {
+      document.getElementById('revlogYtdNumber').textContent = '–';
+      document.getElementById('revlogStatusTableBody').innerHTML = `<tr><td colspan="4" class="empty-row">${e.message}</td></tr>`;
+    }
   } catch(err) {
     document.getElementById('revlogSub').innerHTML = `<span style="color:var(--amber)">${err.message}</span>`;
   }
