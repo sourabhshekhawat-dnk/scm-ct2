@@ -116,9 +116,21 @@
         <div class="chart-title">RTO Tracker — PO Count &amp; Invoice Qty <span class="period-tag">All months</span></div>
         <div class="chart-sub" id="revlogSummarySub">Loading…</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div class="chart-kpi">
+          <span id="revlogYtdHeroNumber" class="kpi-num"> -<span class="kpi-unit">%</span></span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="status-pill" id="revlogYtdStatusPill"> -</span>
+            <span style="font-size:10px;color:var(--ink-light)">YTD RTO rate</span>
+          </div>
+        </div>
         <button class="btn btn-secondary" id="revlogSummaryToggle" style="font-size:10px;padding:5px 12px">Show Qty View</button>
       </div>
+    </div>
+
+    <!-- Month-wise RTO rate chart -->
+    <div class="chart-body" id="revlogMonthChart" style="padding:12px 16px 4px">
+      <div class="chart-empty">Loading month-wise RTO rate…</div>
     </div>
 
     <!-- PO Count table -->
@@ -545,6 +557,48 @@ function columnChartSVG(months, targetPct) {
   return svg;
 }
 
+// Month-wise RTO rate bar chart for the Rev Log B2B summary card.
+// Unlike columnChartSVG (higher = better), RTO rate is lower = better,
+// so the color thresholds are inverted (matches statusTag(pct,5,10) elsewhere).
+function revlogMonthlyChartSVG(byMonth) {
+  const loaded = (byMonth || []).filter(m => !m.skipped);
+  if (!loaded.length) return '<div class="chart-empty">No month data loaded</div>';
+
+  const W = 340, H = 150, PAD_L = 40, PAD_B = 26, PAD_T = 10;
+  const chartW = W - PAD_L - 10, chartH = H - PAD_B - PAD_T;
+  const n = loaded.length;
+  const colW = Math.min(chartW / n * 0.55, 40);
+  const gap = chartW / n;
+  const maxVal = Math.max(10, ...loaded.map(m => m.rtoRate)) * 1.15;
+
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let i = 0; i <= 4; i++) {
+    const val = (maxVal / 4) * i;
+    const y = PAD_T + chartH - (val / maxVal) * chartH;
+    svg += `<line x1="${PAD_L}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#ECEEF5" stroke-width="1"/>`;
+    svg += `<text x="${PAD_L - 4}" y="${y + 4}" text-anchor="end" font-size="8" font-family="JetBrains Mono,monospace" fill="#A0A8C0">${val.toFixed(0)}%</text>`;
+  }
+
+  const points = [];
+  loaded.forEach((m, i) => {
+    const cx = PAD_L + i * gap + gap / 2;
+    const bH = (m.rtoRate / maxVal) * chartH;
+    const color = m.rtoRate <= 5 ? '#16A34A' : m.rtoRate <= 10 ? '#D97706' : '#DC2626';
+    svg += `<rect x="${cx - colW/2}" y="${PAD_T + chartH - bH}" width="${colW}" height="${bH}" rx="3" fill="${color}" opacity=".85"/>`;
+    svg += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#7880A0">${m.month.slice(0,3)}</text>`;
+    svg += `<text x="${cx}" y="${PAD_T + chartH - bH - 4}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="${color}" font-weight="600">${m.rtoRate.toFixed(1)}%</text>`;
+    points.push([cx, PAD_T + chartH - bH]);
+  });
+
+  if (points.length > 1) {
+    const pStr = points.map(p => p.join(',')).join(' ');
+    svg += `<polyline points="${pStr}" fill="none" stroke="#6B7FD4" stroke-width="2" stroke-dasharray="4,2" opacity=".7"/>`;
+    points.forEach(p => { svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#6B7FD4"/>`; });
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
 // ── RENDER FUNCTIONS ────────────────────────────────────────────────────
 
 async function renderRevLogFromSheet() {
@@ -712,6 +766,15 @@ async function renderRevLogSummary() {
 
   try {
     const months = await getAllMonthsCached();
+
+    // ── YTD hero number + month-wise RTO rate chart ─────────────────────
+    const ytdTotal = months.ytdTotal || 0;
+    document.getElementById('revlogYtdHeroNumber').innerHTML = ytdTotal.toFixed(1) + '<span class="kpi-unit">%</span>';
+    const ytdPill = document.getElementById('revlogYtdStatusPill');
+    if (ytdTotal <= 5)       { ytdPill.textContent = 'ON TRACK'; ytdPill.className = 'status-pill status-good'; }
+    else if (ytdTotal <= 10) { ytdPill.textContent = 'WATCH';    ytdPill.className = 'status-pill status-attn'; }
+    else                     { ytdPill.textContent = 'AT RISK';  ytdPill.className = 'status-pill status-risk'; }
+    document.getElementById('revlogMonthChart').innerHTML = revlogMonthlyChartSVG(months.byMonth);
 
     // ── subtotal row ───────────────────────────────────────────────────
     const totPO  = { total:0, rtoTotal:0, rtoDelivered:0, putawayDone:0, putawayPend:0 };
